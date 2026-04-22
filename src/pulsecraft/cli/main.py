@@ -94,10 +94,19 @@ def run_change(
     else:
         signalscribe_agent = MockSignalScribe()
 
+    buatlas_fanout_fn = None
     if real_buatlas:
-        err_console.print(
-            "[yellow]--real-buatlas not yet implemented (prompt 06). Using mock.[/yellow]"
+        from pulsecraft.agents.buatlas import BUAtlas
+        from pulsecraft.agents.buatlas_fanout import buatlas_fanout_sync
+
+        buatlas_agent = BUAtlas()
+        buatlas_fanout_fn = lambda briefs, bus: buatlas_fanout_sync(  # noqa: E731
+            briefs, bus, factory=lambda: BUAtlas()
         )
+        console.print("[cyan]BUAtlas:[/cyan] real (claude-sonnet-4-6, parallel fan-out)")
+    else:
+        buatlas_agent = MockBUAtlas()
+
     if real_pushpilot:
         err_console.print(
             "[yellow]--real-pushpilot not yet implemented (prompt 07). Using mock.[/yellow]"
@@ -108,10 +117,11 @@ def run_change(
     hitl_queue = HITLQueue(audit_writer=audit_writer, root=queue_dir)
     orchestrator = Orchestrator(
         signalscribe=signalscribe_agent,
-        buatlas=MockBUAtlas(),
+        buatlas=buatlas_agent,
         pushpilot=MockPushPilot(),
         audit_writer=audit_writer,
         hitl_queue=hitl_queue,
+        buatlas_fanout_fn=buatlas_fanout_fn,
     )
 
     # Run

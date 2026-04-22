@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -93,6 +94,10 @@ class Orchestrator:
     """Deterministic workflow service that sequences agent invocations.
 
     Inject agents and infrastructure; call run_change() per change event.
+
+    When buatlas_fanout_fn is provided, the orchestrator uses it for parallel
+    per-BU invocations instead of the sequential mock-compatible loop. The
+    buatlas argument is still required (used for audit actor name/version).
     """
 
     def __init__(
@@ -102,12 +107,14 @@ class Orchestrator:
         pushpilot: PushPilotProtocol,
         audit_writer: AuditWriter,
         hitl_queue: HITLQueue,
+        buatlas_fanout_fn: Callable | None = None,
     ) -> None:
         self._signalscribe = signalscribe
         self._buatlas = buatlas
         self._pushpilot = pushpilot
         self._audit = audit_writer
         self._hitl = hitl_queue
+        self._buatlas_fanout_fn = buatlas_fanout_fn
 
     # ── audit helpers ─────────────────────────────────────────────────────
 
@@ -561,40 +568,94 @@ class Orchestrator:
         )
 
         # ── Step 4: BUAtlas fan-out → PERSONALIZED ───────────────────────
-        # TODO(prompt-06): parallelize via asyncio.gather; sequential is correct for v1.
         personalized_briefs: dict[str, PersonalizedBrief] = {}
         buatlas_hitl_triggered = False
 
-        for bu_id in candidate_buses:
-            bu_profile = get_bu_profile(bu_id)
-            pb = self._buatlas.invoke(change_brief, bu_profile)
-            personalized_briefs[bu_id] = pb
+        if self._buatlas_fanout_fn is not None:
+            # Real parallel fan-out via buatlas_fanout_sync
+            bu_profiles = [get_bu_profile(bu_id) for bu_id in candidate_buses]
+            fanout_results = self._buatlas_fanout_fn(change_brief, bu_profiles)
 
-            pb_decisions = [
-                AuditDecision(gate=d.gate, verb=str(d.verb), reason=d.reason[:200])
-                for d in pb.decisions
-            ]
-            self._write_agent_invocation(
-                change_id=change_id,
-                agent_name=self._buatlas.agent_name,
-                agent_version=self._buatlas.version,
-                input_data={"change_id": change_id, "bu_id": bu_id},
-                decisions=pb_decisions,
-                output_summary=(
-                    f"bu={bu_id} relevance={pb.relevance} quality={pb.message_quality}"
-                ),
-                correlation_ids=CorrelationIds(
-                    brief_id=change_brief.brief_id,
-                    personalized_brief_id=pb.personalized_brief_id,
-                ),
-            )
+            for bu_profile, fanout_item in zip(bu_profiles, fanout_results, strict=True):
+                bu_id = bu_profile.bu_id
+                from pulsecraft.agents.buatlas_fanout import FanoutFailure
 
-            # Check for BUAtlas ESCALATE
-            for d in pb.decisions:
-                if d.verb == DecisionVerb.ESCALATE:
-                    buatlas_hitl_triggered = True
+                if isinstance(fanout_item, FanoutFailure):
+                    # v1: drop failures with audit trail; do not kill the pipeline
+                    self._write_error(
+                        change_id,
+                        f"BUATLAS_FANOUT_FAILURE_{fanout_item.error_type}",
+                        f"bu={bu_id} {fanout_item.error_message}",
+                    )
+                    logger.warning(
+                        "buatlas_fanout_failure_dropped",
+                        change_id=change_id,
+                        bu_id=bu_id,
+                        error_type=fanout_item.error_type,
+                        retriable=fanout_item.retriable,
+                    )
+                    continue
+
+                pb = fanout_item
+                personalized_briefs[bu_id] = pb
+                pb_decisions = [
+                    AuditDecision(gate=d.gate, verb=str(d.verb), reason=d.reason[:200])
+                    for d in pb.decisions
+                ]
+                self._write_agent_invocation(
+                    change_id=change_id,
+                    agent_name=self._buatlas.agent_name,
+                    agent_version=self._buatlas.version,
+                    input_data={"change_id": change_id, "bu_id": bu_id},
+                    decisions=pb_decisions,
+                    output_summary=f"bu={bu_id} relevance={pb.relevance} quality={pb.message_quality}",
+                    correlation_ids=CorrelationIds(
+                        brief_id=change_brief.brief_id,
+                        personalized_brief_id=pb.personalized_brief_id,
+                    ),
+                )
+                for d in pb.decisions:
+                    if d.verb == DecisionVerb.ESCALATE:
+                        buatlas_hitl_triggered = True
+        else:
+            # Sequential mock-compatible path (default; used by all existing tests)
+            for bu_id in candidate_buses:
+                bu_profile = get_bu_profile(bu_id)
+                pb = self._buatlas.invoke(change_brief, bu_profile)
+                personalized_briefs[bu_id] = pb
+
+                pb_decisions = [
+                    AuditDecision(gate=d.gate, verb=str(d.verb), reason=d.reason[:200])
+                    for d in pb.decisions
+                ]
+                self._write_agent_invocation(
+                    change_id=change_id,
+                    agent_name=self._buatlas.agent_name,
+                    agent_version=self._buatlas.version,
+                    input_data={"change_id": change_id, "bu_id": bu_id},
+                    decisions=pb_decisions,
+                    output_summary=(
+                        f"bu={bu_id} relevance={pb.relevance} quality={pb.message_quality}"
+                    ),
+                    correlation_ids=CorrelationIds(
+                        brief_id=change_brief.brief_id,
+                        personalized_brief_id=pb.personalized_brief_id,
+                    ),
+                )
+                for d in pb.decisions:
+                    if d.verb == DecisionVerb.ESCALATE:
+                        buatlas_hitl_triggered = True
 
         result.personalized_briefs = personalized_briefs
+
+        # All BUs failed in fanout? Treat as no candidates found.
+        if not personalized_briefs:
+            state = self._transition(
+                change_id, state, "no_candidate_bus", "all BUAtlas invocations failed"
+            )
+            result.terminal_state = state
+            result.audit_record_count = self._audit.record_count(change_id)
+            return result
 
         # All NOT_AFFECTED?
         all_not_affected = all(
