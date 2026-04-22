@@ -1,0 +1,9 @@
+{
+  "flag_id": "FLAG-99",
+  "name": "batch_order_submission_v2",
+  "description": "Enables the new batch order submission endpoint (v2.1) for integrated order management systems.",
+  "state": "ramping",
+  "rollout_percentage": 25,
+  "target_audiences": ["api_integrators", "enterprise_accounts"],
+  "owner_team": "order-management-eng"
+}

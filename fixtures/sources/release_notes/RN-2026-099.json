@@ -1,0 +1,8 @@
+{
+  "release_id": "RN-2026-099",
+  "title": "Patient Portal — Session Timeout Policy Update",
+  "body": "## Summary\n\nSession timeout for patient portal users reduced from 60 minutes to 20 minutes of inactivity, effective immediately.\n\n## Rationale\n\nCompliance requirement update from security review board.\n\n## Impact\n\nUsers will be logged out after 20 minutes of inactivity instead of 60. Existing sessions are migrated automatically.",
+  "author_name": "<security-product-manager>",
+  "published_at": "2026-04-20T14:30:00Z",
+  "tags": ["security", "session-management", "patient-portal", "compliance"]
+}

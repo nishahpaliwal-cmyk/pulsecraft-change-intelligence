@@ -1,0 +1,12 @@
+{
+  "key": "JIRA-ALPHA-1234",
+  "fields": {
+    "summary": "Update clinical justification field validation — enforce minimum character count",
+    "description": "The clinical justification field in the prior authorization form currently has no minimum length requirement. Implement a 200-character minimum with a live character counter to reduce incomplete submissions.\n\nAcceptance criteria:\n1. Field displays character count as user types.\n2. Form validation blocks submission if justification < 200 characters.\n3. Error message is actionable and specific.",
+    "status": "In Progress",
+    "priority": "High",
+    "assignee": "<engineer-alpha>",
+    "labels": ["prior-authorization", "validation", "hcp-portal"],
+    "linked_items": []
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "doc_id": "DOC-42",
+  "title": "Field Rep Onboarding Guide — HCP Portal Ordering Module",
+  "markdown_content": "# HCP Portal Ordering Module — Field Rep Guide\n\n## Overview\n\nThis guide covers the HCP portal ordering workflow for field representatives. Topics include initial setup, order entry, tracking, and escalation procedures.\n\n## Prerequisites\n\n- Active portal account provisioned by IT\n- Completion of online ordering module training\n\n## Ordering Workflow\n\n1. Log in to the HCP portal.\n2. Navigate to **Orders > New Order**.\n3. Complete all required fields in the order form.\n4. Submit for pharmacist review.\n\n## Updated in This Version\n\n- Step 2 now requires selecting the patient's insurance plan before proceeding to the order form.\n- Pharmacist review turnaround target updated from 48h to 24h.",
+  "author": "<documentation-specialist>",
+  "last_modified": "2026-04-10T11:00:00Z",
+  "folder_path": "/field-ops/hcp-portal/ordering"
+}

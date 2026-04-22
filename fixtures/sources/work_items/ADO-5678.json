@@ -1,0 +1,12 @@
+{
+  "key": "ADO-5678",
+  "fields": {
+    "summary": "Reporting dashboard — add BU-level filter to performance metrics view",
+    "description": "Product request: BU heads need to filter the performance metrics dashboard by their own BU without seeing other BUs' data. Implement a BU-level filter dropdown that restricts the visible data set based on the logged-in user's BU association.",
+    "status": "Ready for Dev",
+    "priority": "Medium",
+    "assignee": "<engineer-delta>",
+    "labels": ["reporting", "dashboard", "access-control"],
+    "linked_items": [{"type": "related", "ref": "ADO-5601"}]
+  }
+}

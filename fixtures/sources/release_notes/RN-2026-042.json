@@ -1,0 +1,13 @@
+{
+  "release_id": "RN-2026-042",
+  "title": "Order Management API — Batch Processing Mode (v2.1)",
+  "body": "## Summary\n\nVersion 2.1 of the Order Management API introduces a batch processing mode for high-volume order submission workflows...\n\n## What Changed\n\n- Added POST /orders/batch endpoint accepting up to 500 orders per request.\n- Response includes per-order status with error details for partial failures.\n- Rate limit increased from 100 to 1000 requests/minute for batch endpoint.\n\n## Rollout\n\nGA release. Available immediately. No migration required for existing integrations.",
+  "author_name": "<product-manager-generic>",
+  "published_at": "2026-04-15T09:00:00Z",
+  "tags": ["api-change", "batch-processing", "order-management"],
+  "rollout": {
+    "start_date": "2026-04-15",
+    "ramp": "immediate GA",
+    "target_population": "All API integrators using order submission endpoints"
+  }
+}

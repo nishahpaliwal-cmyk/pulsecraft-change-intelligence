@@ -1,0 +1,9 @@
+{
+  "flag_id": "FLAG-12",
+  "name": "hcp_portal_wizard_ui",
+  "description": "Replaces the single-page prior authorization form with a multi-step wizard UI. Early experiment phase.",
+  "state": "experiment",
+  "rollout_percentage": 5,
+  "target_audiences": ["internal_qa", "beta_hcp_users"],
+  "owner_team": "hcp-portal-eng"
+}

@@ -1,0 +1,10 @@
+{
+  "incident_id": "INC-2026-001",
+  "title": "HCP Portal Order Submission Latency Spike — P1",
+  "summary": "Order submission endpoint experienced 3x latency increase (P95 from 400ms to 1.2s) between 09:15 and 10:45 UTC. Root cause: upstream formulary lookup service returning stale cache entries causing retry storms. Mitigation: increased cache TTL and added circuit breaker. Resolution: normal latency restored by 10:45 UTC. Post-mortem scheduled.",
+  "severity": "P1",
+  "status": "resolved",
+  "affected_components": ["order-submission-api", "formulary-lookup-service"],
+  "created_at": "2026-04-18T09:15:00Z",
+  "resolved_at": "2026-04-18T10:45:00Z"
+}
