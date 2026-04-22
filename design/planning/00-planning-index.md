@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 06 (BUAtlas — second real LLM-backed agent; gates 4, 5; asyncio fan-out; FanoutFailure isolation; eval script; CLI --real-buatlas flag).
+**Last completed:** Prompt 07 (PushPilot — third and final real LLM-backed agent; gate 6; delivery timing judgment; agent-vs-code policy enforcement split; eval script; CLI --real-pushpilot flag; full end-to-end pipeline with all three real agents).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 06 of 14. Prompt 07 (PushPilot agent) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 07 of 14. Prompt 08 (ingest adapter skills) is next.
 
 ---
 
@@ -22,7 +22,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | **P0 — Problem framing** | Problem statement, sponsor alignment | ✅ Done |
 | **P1 — Pattern decision** | ADR-001 (pattern), ADR-002 (topology) | ✅ Done |
 | **P2 — Decision design** | Six-gate decision criteria, architecture | ✅ Done |
-| **P3 — Agent prompt authoring** | CLAUDE.md, signalscribe.md, buatlas.md, pushpilot.md | 🚧 In progress (CLAUDE.md done in 03.5; signalscribe.md done in 05; buatlas.md done in 06; pushpilot.md next in 07) |
+| **P3 — Agent prompt authoring** | CLAUDE.md, signalscribe.md, buatlas.md, pushpilot.md | ✅ Done (CLAUDE.md done in 03.5; signalscribe.md done in 05; buatlas.md done in 06; pushpilot.md done in 07) |
 | **P4 — Schemas and contracts** | JSON schemas + Pydantic models for data contracts | ✅ Done (completed ahead of schedule in prompt 02) |
 | **P5 — Config + fixtures** | BU registry, profiles, policy, synthetic change fixtures | ✅ Done (completed ahead of schedule in prompt 03) |
 | **P6 — Skills** | Skill definitions and implementations | ⏳ Prompts 08–10 |
@@ -75,6 +75,15 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | 37 | BUAtlas eval script | `scripts/eval_buatlas.py` | 06 | Variance-aware N=3 per fixture; match/close/false_positive/mismatch classification |
 | 38 | BUAtlas unit tests | `tests/unit/agents/test_buatlas_unit.py`, `test_buatlas_fanout_unit.py` | 06 | 33 unit tests: protocol, retry, isolation, fanout ordering/failures/concurrency |
 | 39 | BUAtlas integration tests | `tests/integration/agents/test_buatlas_integration.py` | 06 | 10 real-API tests; @pytest.mark.llm; skipped by default |
+| 40 | PushPilot agent | `src/pulsecraft/agents/pushpilot.py` | 07 | Real LLM-backed agent; gate 6; delivery timing; agent-vs-code policy split |
+| 41 | PushPilot system prompt | `.claude/agents/pushpilot.md` | 07 | 236-line canonical prompt; decision table; agent-vs-code split reminder |
+| 42 | Orchestrator policy layer | `src/pulsecraft/orchestrator/engine.py` | 07 | `_is_in_quiet_hours`, `_select_channel`, `_enforce_pushpilot_policy` methods |
+| 43 | PushPilot eval script | `scripts/eval_pushpilot.py` | 07 | 5 scenarios × N=3 runs; risk/match/mismatch/error classification |
+| 44 | PushPilot unit tests | `tests/unit/agents/test_pushpilot_unit.py` | 07 | 20 unit tests: protocol, init, invoke contract, retry/error handling |
+| 45 | Policy enforcement tests | `tests/unit/orchestrator/test_policy_enforcement.py` | 07 | 12 tests: quiet-hours detection, SEND_NOW override, channel approval, DIGEST/ESCALATE pass-through |
+| 46 | PushPilot integration tests | `tests/integration/agents/test_pushpilot_integration.py` | 07 | 6 real-API tests; @pytest.mark.llm; schema, verb consistency, P1/P2 tendency |
+| 47 | Full pipeline tests | `tests/integration/orchestrator/test_full_pipeline.py` | 07 | 10 tests; all 3 real agents; terminal state ranges per fixture |
+| 48 | Integration conftest | `tests/integration/conftest.py` | 07 | Shared .env loader for all integration/LLM tests |
 
 ---
 

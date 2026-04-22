@@ -29,10 +29,9 @@
 - ✅ 04 — Deterministic orchestrator: state machine, agent Protocols, mock agents, audit writer, HITL queue, engine, CLI, 187 tests
 - ✅ 05 — SignalScribe agent (gates 1, 2, 3) — real LLM-backed, Claude Sonnet 4.6
 - ✅ 06 — BUAtlas agent (gates 4, 5) — parallel per-BU personalization, asyncio fan-out, FanoutFailure isolation
+- ✅ 07 — PushPilot agent (gate 6) — delivery timing, agent-vs-code split, policy enforcement layer
 
 **Prompts remaining:**
-- ⏳ 07 — Agent: PushPilot (gate 6)
-- ⏳ 07 — Agent: PushPilot (gate 6)
 - ⏳ 08 — Skills: ingest adapters
 - ⏳ 09 — Skills: registry, policy, audit
 - ⏳ 10 — Skills: delivery rendering
@@ -142,6 +141,15 @@ If a prompt authors **commands**, list them in the Commands section of this file
 - **Default bias:** ADJACENT (false positives are the single largest trust-erosion risk)
 - **Eval script:** `scripts/eval_buatlas.py`
 
+### PushPilot (prompt 07)
+- **Location:** `src/pulsecraft/agents/pushpilot.py`
+- **Prompt:** `.claude/agents/pushpilot.md`
+- **Owns gates:** 6
+- **Protocol:** `PushPilotProtocol` (see `orchestrator/agent_protocol.py`)
+- **Model:** `claude-sonnet-4-6` via Anthropic API
+- **Agent-vs-code split:** agent expresses unvarnished delivery preference; orchestrator enforces quiet hours, channel approval, rate limits via `_enforce_pushpilot_policy`
+- **Eval script:** `scripts/eval_pushpilot.py`
+
 ## Hooks configured so far
 
 <!-- Populated as prompt 12 lands. -->
@@ -244,5 +252,5 @@ Uses default mock agents. Prints Rich tables: state-transition audit chain, BU r
 
 ---
 
-*Last updated: prompt 06 (BUAtlas — second real LLM-backed agent, gates 4/5, asyncio fan-out, FanoutFailure isolation, eval script, CLI --real-buatlas flag).*
-*Next prompt: 07 — PushPilot agent (gate 6).*
+*Last updated: prompt 07 (PushPilot — third and final real LLM-backed agent, gate 6, delivery timing judgment, agent-vs-code policy enforcement split, eval script, CLI --real-pushpilot flag, full end-to-end pipeline with all three real agents).*
+*Next prompt: 08 — Skills: ingest adapters.*
