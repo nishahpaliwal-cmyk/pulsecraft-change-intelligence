@@ -1,0 +1,78 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pulsecraft"
+version = "0.1.0"
+description = "AbbVie-internal AI service: marketplace change → BU-ready notifications via a team of three specialist AI agents."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Proprietary" }
+authors = [
+  { name = "AbbVie AI Team" },
+]
+keywords = ["ai", "agents", "notifications", "abbvie", "internal"]
+classifiers = [
+  "Private :: Do Not Upload",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+  "claude-agent-sdk~=0.1",
+  "anthropic~=0.96",
+  "pydantic>=2.6,<3",
+  "pyyaml~=6.0",
+  "typer~=0.15",
+  "rich~=13.0",
+  "structlog~=24.0",
+  "jsonschema~=4.23",
+  "httpx~=0.28",
+  "python-dateutil~=2.9",
+  "tenacity~=9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest~=8.3",
+  "pytest-asyncio~=0.24",
+  "pytest-cov~=6.0",
+  "ruff~=0.8",
+  "mypy~=1.13",
+  "pre-commit~=4.0",
+]
+
+[project.scripts]
+pulsecraft = "pulsecraft.cli.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pulsecraft"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+warn_unused_configs = true
+warn_return_any = true
+ignore_missing_imports = true
+files = ["src"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-ra -q"
+
+[tool.coverage.run]
+source = ["src/pulsecraft"]
+omit = ["tests/*"]

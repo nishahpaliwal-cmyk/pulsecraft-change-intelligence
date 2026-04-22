@@ -1,0 +1,7 @@
+{
+  "hooks": {
+    "PreToolUse": [],
+    "PostToolUse": []
+  },
+  "description": "PulseCraft — hooks will be populated in prompt 12."
+}

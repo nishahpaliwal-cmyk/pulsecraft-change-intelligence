@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+wheels/
+*.egg-link
+MANIFEST
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Environment / secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+coverage.xml
+*.cover
+htmlcov/
+.tox/
+nosetests.xml
+
+# Type checking & linting
+.mypy_cache/
+.ruff_cache/
+.dmypy.json
+dmypy.json
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Node (in case docs/ uses tooling later)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# PulseCraft runtime outputs (tracked by folder, not contents)
+audit/*
+!audit/.gitkeep
+queue/*
+!queue/.gitkeep
+
+# Claude Code local overrides
+.claude/local-settings.json
+
+# Database files (no local DB in this service)
+*.db
+*.sqlite
+*.sqlite3
+
+# Misc
+*.log
+*.tmp
+*.bak
