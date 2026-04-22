@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Sanity check: confirms PulseCraft installs and the Python environment is ready."""
+
 import sys
 
 import pulsecraft

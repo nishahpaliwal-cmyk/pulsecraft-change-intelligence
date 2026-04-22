@@ -1,0 +1,450 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2100 1450" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif">
+  <rect width="2100" height="1450" fill="#FAFAF7"/>
+
+  <!-- Title -->
+  <text x="60" y="55" font-size="32" font-weight="700" fill="#1E293B">PulseCraft — Architecture</text>
+  <text x="60" y="88" font-size="16" fill="#475569">Three specialist agents, each a decision-maker at one or more gates. Agents return decisions (not just outputs); the orchestrator respects them.</text>
+  <line x1="60" y1="105" x2="2040" y2="105" stroke="#CBD5E1" stroke-width="1"/>
+
+  <!-- Guardrails + Policy band -->
+  <rect x="60" y="125" width="1980" height="52" rx="6" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+  <text x="80" y="150" font-size="13" font-weight="700" fill="#991B1B">GUARDRAIL HOOKS + POLICY INVARIANTS (cross-cutting, enforced in code, not negotiable by agents)</text>
+  <text x="80" y="168" font-size="12" fill="#7F1D1D">PreIngest: PII/PHI/secrets redaction  •  PostAgent: schema + citation + confidence validation  •  PreDeliver: quiet hours, rate limits, approved channels, dedupe  •  Audit: every decision + reason logged</text>
+
+  <!-- Swim-lane headers -->
+  <g font-size="12" font-weight="700" fill="#64748B" text-anchor="middle">
+    <text x="175" y="210">SOURCES</text>
+    <text x="365" y="210">INGEST</text>
+    <text x="760" y="210">AGENT 1 — SignalScribe</text>
+    <text x="1225" y="210">AGENT 2 — BUAtlas</text>
+    <text x="1605" y="210">HITL</text>
+    <text x="1870" y="210">AGENT 3 — PushPilot</text>
+  </g>
+
+  <!-- SOURCES -->
+  <g>
+    <rect x="100" y="230" width="150" height="40" rx="6" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1"/>
+    <text x="175" y="254" font-size="12" fill="#1E293B" text-anchor="middle">Release Notes</text>
+
+    <rect x="100" y="278" width="150" height="40" rx="6" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1"/>
+    <text x="175" y="302" font-size="12" fill="#1E293B" text-anchor="middle">Jira / ADO</text>
+
+    <rect x="100" y="326" width="150" height="40" rx="6" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1"/>
+    <text x="175" y="350" font-size="12" fill="#1E293B" text-anchor="middle">Docs / PRDs</text>
+
+    <rect x="100" y="374" width="150" height="40" rx="6" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1"/>
+    <text x="175" y="398" font-size="12" fill="#1E293B" text-anchor="middle">Feature Flags</text>
+
+    <rect x="100" y="422" width="150" height="40" rx="6" fill="#FFFFFF" stroke="#94A3B8" stroke-width="1"/>
+    <text x="175" y="446" font-size="12" fill="#1E293B" text-anchor="middle">Incidents</text>
+  </g>
+
+  <!-- INGEST -->
+  <g>
+    <rect x="290" y="230" width="150" height="232" rx="6" fill="#F1F5F9" stroke="#64748B" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="365" y="255" font-size="12" font-weight="600" fill="#334155" text-anchor="middle">Adapters + Normalize</text>
+    <text x="365" y="272" font-size="10.5" fill="#64748B" text-anchor="middle">(skills / code)</text>
+    <text x="365" y="296" font-size="10.5" fill="#475569" text-anchor="middle">fetch-release-note</text>
+    <text x="365" y="312" font-size="10.5" fill="#475569" text-anchor="middle">fetch-work-item</text>
+    <text x="365" y="328" font-size="10.5" fill="#475569" text-anchor="middle">fetch-doc</text>
+    <text x="365" y="344" font-size="10.5" fill="#475569" text-anchor="middle">fetch-feature-flag</text>
+    <text x="365" y="360" font-size="10.5" fill="#475569" text-anchor="middle">fetch-incident</text>
+
+    <text x="365" y="388" font-size="10.5" fill="#475569" text-anchor="middle">/ingest command</text>
+    <text x="365" y="404" font-size="10.5" fill="#475569" text-anchor="middle">(webhook / cron)</text>
+
+    <text x="365" y="432" font-size="10" font-style="italic" fill="#64748B" text-anchor="middle">produces: normalized</text>
+    <text x="365" y="448" font-size="10" font-style="italic" fill="#64748B" text-anchor="middle">ChangeArtifact</text>
+  </g>
+
+  <!-- Sources → Ingest arrows -->
+  <g stroke="#94A3B8" stroke-width="1.2" fill="none">
+    <path d="M 250 250 L 290 285" marker-end="url(#arrow)"/>
+    <path d="M 250 298 L 290 315" marker-end="url(#arrow)"/>
+    <path d="M 250 346 L 290 345" marker-end="url(#arrow)"/>
+    <path d="M 250 394 L 290 375" marker-end="url(#arrow)"/>
+    <path d="M 250 442 L 290 405" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- Arrow Ingest → SignalScribe -->
+  <path d="M 440 345 L 500 345" stroke="#64748B" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="470" y="335" font-size="10" font-weight="600" fill="#334155" text-anchor="middle">artifact</text>
+
+  <!-- SIGNALSCRIBE AGENT BOX (widened to 520) -->
+  <g>
+    <rect x="500" y="230" width="520" height="450" rx="12" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2.5"/>
+    <rect x="500" y="230" width="520" height="40" rx="12" fill="#4F46E5"/>
+    <rect x="500" y="258" width="520" height="12" fill="#4F46E5"/>
+    <text x="760" y="256" font-size="15" font-weight="700" fill="#FFFFFF" text-anchor="middle">◆ SignalScribe — Change Understanding Agent</text>
+
+    <!-- Gate 1 (widened inner box to 480) -->
+    <rect x="520" y="288" width="480" height="110" rx="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <rect x="520" y="288" width="480" height="22" rx="8" fill="#6366F1"/>
+    <rect x="520" y="302" width="480" height="8" fill="#6366F1"/>
+    <text x="760" y="304" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">GATE 1 — Is this worth communicating?</text>
+    <text x="532" y="326" font-size="10.5" fill="#312E81">Signals: visible behavior change • customer-facing surface •</text>
+    <text x="532" y="341" font-size="10.5" fill="#312E81">workflow change • integration impact • support load •</text>
+    <text x="532" y="356" font-size="10.5" fill="#312E81">regulatory relevance • reversal • new capability</text>
+    <text x="532" y="375" font-size="10.5" font-weight="600" fill="#4338CA">Decisions:</text>
+    <text x="612" y="375" font-size="10.5" fill="#15803D">COMMUNICATE</text>
+    <text x="702" y="375" font-size="10.5" fill="#475569">·</text>
+    <text x="717" y="375" font-size="10.5" fill="#B45309">ARCHIVE</text>
+    <text x="772" y="375" font-size="10.5" fill="#475569">·</text>
+    <text x="787" y="375" font-size="10.5" fill="#BE185D">ESCALATE</text>
+    <text x="532" y="391" font-size="10" font-style="italic" fill="#6366F1">If ARCHIVE → stop. If ESCALATE → HITL. If COMMUNICATE → continue to gate 2.</text>
+
+    <!-- Gate 2 -->
+    <rect x="520" y="408" width="480" height="110" rx="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <rect x="520" y="408" width="480" height="22" rx="8" fill="#6366F1"/>
+    <rect x="520" y="422" width="480" height="8" fill="#6366F1"/>
+    <text x="760" y="424" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">GATE 2 — Is it ripe (timing right)?</text>
+    <text x="532" y="446" font-size="10.5" fill="#312E81">Signals: imminent rollout • decision window open •</text>
+    <text x="532" y="461" font-size="10.5" fill="#312E81">already shipped • docs ready • early flag stage (hold) •</text>
+    <text x="532" y="476" font-size="10.5" fill="#312E81">feature still tuning (hold) • far-out rollout (hold)</text>
+    <text x="532" y="495" font-size="10.5" font-weight="600" fill="#4338CA">Decisions:</text>
+    <text x="612" y="495" font-size="10.5" fill="#15803D">RIPE</text>
+    <text x="647" y="495" font-size="10.5" fill="#475569">·</text>
+    <text x="662" y="495" font-size="10.5" fill="#B45309">HOLD_UNTIL(date)</text>
+    <text x="777" y="495" font-size="10.5" fill="#475569">·</text>
+    <text x="792" y="495" font-size="10.5" fill="#B45309">HOLD_INDEFINITE</text>
+    <text x="532" y="511" font-size="10" font-style="italic" fill="#6366F1">If HOLD → re-queued with re-eval trigger. If RIPE → continue to gate 3.</text>
+
+    <!-- Gate 3 -->
+    <rect x="520" y="528" width="480" height="110" rx="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <rect x="520" y="528" width="480" height="22" rx="8" fill="#6366F1"/>
+    <rect x="520" y="542" width="480" height="8" fill="#6366F1"/>
+    <text x="760" y="544" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">GATE 3 — Clear enough to hand off?</text>
+    <text x="532" y="566" font-size="10.5" fill="#312E81">Signals: concrete before/after • named impact areas •</text>
+    <text x="532" y="581" font-size="10.5" fill="#312E81">specified timeline • citations support claims •</text>
+    <text x="532" y="596" font-size="10.5" fill="#312E81">confidence ≥ 0.75 • actors identifiable</text>
+    <text x="532" y="615" font-size="10.5" font-weight="600" fill="#4338CA">Decisions:</text>
+    <text x="612" y="615" font-size="10.5" fill="#15803D">READY</text>
+    <text x="655" y="615" font-size="10.5" fill="#475569">·</text>
+    <text x="670" y="615" font-size="10.5" fill="#BE185D">NEED_CLARIFICATION(qs)</text>
+    <text x="820" y="615" font-size="10.5" fill="#475569">·</text>
+    <text x="835" y="615" font-size="10.5" fill="#BE185D">UNRESOLVABLE</text>
+    <text x="532" y="631" font-size="10" font-style="italic" fill="#6366F1">If NEED_CLARIFICATION or UNRESOLVABLE → HITL. If READY → handoff.</text>
+
+    <!-- Tools list -->
+    <text x="532" y="660" font-size="10" fill="#4338CA"><tspan font-weight="700">Read-only tools:</tspan> follow-linked-doc · query-related-work-item ·</text>
+    <text x="532" y="674" font-size="10" fill="#4338CA">lookup-rollout-schedule · resolve-feature-flag</text>
+  </g>
+
+  <!-- Arrow SignalScribe → BU Pre-filter -->
+  <path d="M 1020 460 L 1080 460" stroke="#4F46E5" stroke-width="2.2" fill="none" marker-end="url(#arrowIndigo)"/>
+  <text x="1050" y="450" font-size="10" font-weight="700" fill="#4F46E5" text-anchor="middle">ChangeBrief</text>
+  <text x="1050" y="476" font-size="10" font-weight="700" fill="#4F46E5" text-anchor="middle">+ decisions</text>
+
+  <!-- BU PRE-FILTER -->
+  <g>
+    <rect x="1080" y="230" width="150" height="64" rx="6" fill="#F1F5F9" stroke="#64748B" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="1155" y="255" font-size="11" font-weight="600" fill="#334155" text-anchor="middle">BU pre-filter</text>
+    <text x="1155" y="272" font-size="10" fill="#475569" text-anchor="middle">lookup-bu-registry</text>
+    <text x="1155" y="288" font-size="9.5" font-style="italic" fill="#64748B" text-anchor="middle">deterministic; recall-biased</text>
+  </g>
+
+  <!-- BUATLAS AGENT BOX (widened to 390, parallel stack) -->
+  <g>
+    <!-- Back instance -->
+    <rect x="1080" y="330" width="390" height="340" rx="12" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.5" opacity="0.4"/>
+    <!-- Middle instance -->
+    <rect x="1065" y="318" width="390" height="340" rx="12" fill="#EEF2FF" stroke="#4F46E5" stroke-width="1.8" opacity="0.7"/>
+    <!-- Front instance -->
+    <rect x="1050" y="306" width="390" height="340" rx="12" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2.5"/>
+    <rect x="1050" y="306" width="390" height="36" rx="12" fill="#4F46E5"/>
+    <rect x="1050" y="330" width="390" height="12" fill="#4F46E5"/>
+    <text x="1245" y="330" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">◆ BUAtlas — per BU (parallel)</text>
+
+    <!-- Gate 4 -->
+    <rect x="1065" y="356" width="360" height="140" rx="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <rect x="1065" y="356" width="360" height="22" rx="8" fill="#6366F1"/>
+    <rect x="1065" y="370" width="360" height="8" fill="#6366F1"/>
+    <text x="1245" y="372" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">GATE 4 — Is this BU actually affected?</text>
+    <text x="1076" y="394" font-size="10" fill="#312E81">Signals: touches BU workflow • alters BU output •</text>
+    <text x="1076" y="408" font-size="10" fill="#312E81">requires BU preparation • creates BU decision •</text>
+    <text x="1076" y="422" font-size="10" fill="#312E81">visible rollout in BU user base • BU owns area</text>
+    <text x="1076" y="441" font-size="10" font-weight="600" fill="#4338CA">Decisions:</text>
+    <text x="1142" y="441" font-size="10" fill="#15803D">AFFECTED</text>
+    <text x="1207" y="441" font-size="10" fill="#475569">·</text>
+    <text x="1222" y="441" font-size="10" fill="#B45309">ADJACENT</text>
+    <text x="1282" y="441" font-size="10" fill="#475569">·</text>
+    <text x="1297" y="441" font-size="10" fill="#64748B">NOT_AFFECTED</text>
+    <text x="1076" y="460" font-size="9.5" font-style="italic" fill="#6366F1">ADJACENT → digest-only.</text>
+    <text x="1076" y="474" font-size="9.5" font-style="italic" fill="#6366F1">NOT_AFFECTED → drop. AFFECTED → continue to gate 5.</text>
+
+    <!-- Gate 5 -->
+    <rect x="1065" y="506" width="360" height="140" rx="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <rect x="1065" y="506" width="360" height="22" rx="8" fill="#6366F1"/>
+    <rect x="1065" y="520" width="360" height="8" fill="#6366F1"/>
+    <text x="1245" y="522" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">GATE 5 — Message worth attention?</text>
+    <text x="1076" y="544" font-size="10" fill="#312E81">Signals: specific BU-relevant "why" • concrete</text>
+    <text x="1076" y="558" font-size="10" fill="#312E81">action with owner • length matches weight •</text>
+    <text x="1076" y="572" font-size="10" fill="#312E81">specific timing • 20-second readable</text>
+    <text x="1076" y="591" font-size="10" font-weight="600" fill="#4338CA">Decisions:</text>
+    <text x="1142" y="591" font-size="10" fill="#15803D">WORTH_SENDING</text>
+    <text x="1237" y="591" font-size="10" fill="#475569">·</text>
+    <text x="1252" y="591" font-size="10" fill="#B45309">WEAK</text>
+    <text x="1287" y="591" font-size="10" fill="#475569">·</text>
+    <text x="1302" y="591" font-size="10" fill="#64748B">NOT_WORTH</text>
+    <text x="1076" y="610" font-size="9.5" font-style="italic" fill="#6366F1">WEAK → regenerate once, then HITL.</text>
+    <text x="1076" y="624" font-size="9.5" font-style="italic" fill="#6366F1">NOT_WORTH → drop or digest.</text>
+  </g>
+
+  <!-- Arrow BUAtlas → HITL -->
+  <path d="M 1470 460 L 1540 460" stroke="#4F46E5" stroke-width="2.2" fill="none" marker-end="url(#arrowIndigo)"/>
+  <text x="1505" y="450" font-size="10" font-weight="700" fill="#4F46E5" text-anchor="middle">Personalized</text>
+  <text x="1505" y="476" font-size="10" font-weight="700" fill="#4F46E5" text-anchor="middle">Brief[]</text>
+
+  <!-- HITL GATE -->
+  <g>
+    <rect x="1540" y="306" width="240" height="340" rx="10" fill="#FEFCE8" stroke="#CA8A04" stroke-width="2"/>
+    <rect x="1540" y="306" width="240" height="34" rx="10" fill="#CA8A04"/>
+    <rect x="1540" y="330" width="240" height="10" fill="#CA8A04"/>
+    <text x="1660" y="329" font-size="13" font-weight="700" fill="#FFFFFF" text-anchor="middle">HITL — Human Review Gate</text>
+
+    <text x="1660" y="360" font-size="11" font-weight="700" fill="#713F12" text-anchor="middle">Review triggers:</text>
+    <text x="1555" y="380" font-size="10" fill="#854D0E">• Any agent ESCALATE</text>
+    <text x="1555" y="396" font-size="10" fill="#854D0E">• NEED_CLARIFICATION from gate 3</text>
+    <text x="1555" y="412" font-size="10" fill="#854D0E">• Confidence below threshold</text>
+    <text x="1555" y="428" font-size="10" fill="#854D0E">• Priority = P0</text>
+    <text x="1555" y="444" font-size="10" fill="#854D0E">• Commitments / dates in draft</text>
+    <text x="1555" y="460" font-size="10" fill="#854D0E">• Restricted terms detected</text>
+    <text x="1555" y="476" font-size="10" fill="#854D0E">• MLR-sensitive content</text>
+    <text x="1555" y="492" font-size="10" fill="#854D0E">• Second WEAK from gate 5</text>
+
+    <text x="1660" y="530" font-size="11" font-weight="700" fill="#713F12" text-anchor="middle">Reviewer actions:</text>
+    <text x="1660" y="552" font-size="10.5" font-weight="600" fill="#713F12" text-anchor="middle">/approve · /reject</text>
+    <text x="1660" y="568" font-size="10.5" font-weight="600" fill="#713F12" text-anchor="middle">/edit · /answer</text>
+    <text x="1660" y="600" font-size="10" font-style="italic" fill="#713F12" text-anchor="middle">All actions logged</text>
+    <text x="1660" y="616" font-size="10" font-style="italic" fill="#713F12" text-anchor="middle">in audit trail</text>
+  </g>
+
+  <!-- Arrow HITL → PushPilot -->
+  <path d="M 1780 460 L 1840 460" stroke="#64748B" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <text x="1810" y="450" font-size="10" font-weight="600" fill="#334155" text-anchor="middle">approved</text>
+
+  <!-- PUSHPILOT AGENT BOX (gate 6) -->
+  <g>
+    <rect x="1840" y="306" width="240" height="340" rx="12" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2.5"/>
+    <rect x="1840" y="306" width="240" height="36" rx="12" fill="#4F46E5"/>
+    <rect x="1840" y="330" width="240" height="12" fill="#4F46E5"/>
+    <text x="1960" y="330" font-size="14" font-weight="700" fill="#FFFFFF" text-anchor="middle">◆ PushPilot — Delivery</text>
+
+    <!-- Gate 6 -->
+    <rect x="1855" y="356" width="210" height="170" rx="8" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <rect x="1855" y="356" width="210" height="22" rx="8" fill="#6366F1"/>
+    <rect x="1855" y="370" width="210" height="8" fill="#6366F1"/>
+    <text x="1960" y="372" font-size="11" font-weight="700" fill="#FFFFFF" text-anchor="middle">GATE 6 — Right time to send?</text>
+    <text x="1864" y="394" font-size="10" fill="#312E81">Signals: priority tier •</text>
+    <text x="1864" y="409" font-size="10" fill="#312E81">recipient working hours •</text>
+    <text x="1864" y="424" font-size="10" fill="#312E81">rollout imminence •</text>
+    <text x="1864" y="439" font-size="10" fill="#312E81">recent notification volume •</text>
+    <text x="1864" y="454" font-size="10" fill="#312E81">known busy signals • digest opt-in</text>
+    <text x="1864" y="473" font-size="10" font-weight="600" fill="#4338CA">Decisions:</text>
+    <text x="1864" y="490" font-size="10" fill="#15803D">SEND_NOW</text>
+    <text x="1929" y="490" font-size="10" fill="#475569">·</text>
+    <text x="1940" y="490" font-size="10" fill="#B45309">HOLD_UNTIL(t)</text>
+    <text x="1864" y="506" font-size="10" fill="#B45309">DIGEST</text>
+    <text x="1912" y="506" font-size="10" fill="#475569">·</text>
+    <text x="1923" y="506" font-size="10" fill="#BE185D">ESCALATE</text>
+
+    <!-- Channel rendering + send (code) -->
+    <rect x="1855" y="536" width="210" height="104" rx="6" fill="#F1F5F9" stroke="#64748B" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="1960" y="556" font-size="11" font-weight="600" fill="#334155" text-anchor="middle">Deterministic delivery</text>
+    <text x="1960" y="572" font-size="9.5" fill="#64748B" text-anchor="middle">(skills — code, not agent)</text>
+    <text x="1960" y="590" font-size="9.5" fill="#475569" text-anchor="middle">check-policy · compute-dedupe-key</text>
+    <text x="1960" y="605" font-size="9.5" fill="#475569" text-anchor="middle">render-teams-card · render-email</text>
+    <text x="1960" y="620" font-size="9.5" fill="#475569" text-anchor="middle">render-push · schedule-send</text>
+    <text x="1960" y="634" font-size="9" font-style="italic" fill="#64748B" text-anchor="middle">policy enforced here</text>
+  </g>
+
+  <!-- Orchestrator band -->
+  <g>
+    <rect x="290" y="720" width="1790" height="68" rx="8" fill="#F8FAFC" stroke="#475569" stroke-width="2"/>
+    <text x="1185" y="746" font-size="14" font-weight="700" fill="#1E293B" text-anchor="middle">CLAUDE.md — Orchestrator (deterministic code)</text>
+    <text x="1185" y="767" font-size="11" fill="#475569" text-anchor="middle">Sequences agent invocations • respects agent decision verbs (ARCHIVE, HOLD, ESCALATE, etc.) • manages HITL queue • owns state machine • writes audit • no LLM reasoning at this layer</text>
+  </g>
+
+  <!-- Arrows from each agent box down to orchestrator -->
+  <g stroke="#475569" stroke-width="1.5" fill="none" stroke-dasharray="3 3">
+    <path d="M 760 680 L 760 720"/>
+    <path d="M 1245 670 L 1245 720"/>
+    <path d="M 1960 646 L 1960 720"/>
+  </g>
+
+  <!-- Orchestrator state machine -->
+  <g>
+    <text x="1185" y="818" font-size="13" font-weight="700" fill="#1E293B" text-anchor="middle">WORKFLOW STATE MACHINE (managed by orchestrator)</text>
+
+    <rect x="290" y="834" width="130" height="40" rx="20" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
+    <text x="355" y="859" font-size="11" fill="#1E293B" text-anchor="middle">RECEIVED</text>
+
+    <path d="M 420 854 L 460 854" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#arrow)"/>
+
+    <rect x="460" y="834" width="130" height="40" rx="20" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
+    <text x="525" y="859" font-size="11" fill="#1E293B" text-anchor="middle">INTERPRETED</text>
+
+    <path d="M 590 854 L 630 854" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#arrow)"/>
+
+    <rect x="630" y="834" width="130" height="40" rx="20" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
+    <text x="695" y="859" font-size="11" fill="#1E293B" text-anchor="middle">ROUTED</text>
+
+    <path d="M 760 854 L 800 854" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#arrow)"/>
+
+    <rect x="800" y="834" width="130" height="40" rx="20" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
+    <text x="865" y="859" font-size="11" fill="#1E293B" text-anchor="middle">PERSONALIZED</text>
+
+    <path d="M 930 854 L 970 854" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#arrow)"/>
+
+    <rect x="970" y="834" width="140" height="40" rx="20" fill="#FEFCE8" stroke="#CA8A04" stroke-width="1.5"/>
+    <text x="1040" y="859" font-size="11" fill="#713F12" text-anchor="middle">HITL (if needed)</text>
+
+    <path d="M 1110 854 L 1150 854" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#arrow)"/>
+
+    <rect x="1150" y="834" width="130" height="40" rx="20" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
+    <text x="1215" y="859" font-size="11" fill="#1E293B" text-anchor="middle">SCHEDULED</text>
+
+    <path d="M 1280 854 L 1320 854" stroke="#475569" stroke-width="1.2" fill="none" marker-end="url(#arrow)"/>
+
+    <rect x="1320" y="834" width="130" height="40" rx="20" fill="#FFFFFF" stroke="#475569" stroke-width="1.5"/>
+    <text x="1385" y="859" font-size="11" fill="#1E293B" text-anchor="middle">DELIVERED</text>
+
+    <!-- Terminal states -->
+    <rect x="1510" y="814" width="130" height="32" rx="16" fill="#FEF2F2" stroke="#B45309" stroke-width="1.2"/>
+    <text x="1575" y="835" font-size="10.5" fill="#78350F" text-anchor="middle">ARCHIVED</text>
+
+    <rect x="1510" y="854" width="130" height="32" rx="16" fill="#FEF2F2" stroke="#B45309" stroke-width="1.2"/>
+    <text x="1575" y="875" font-size="10.5" fill="#78350F" text-anchor="middle">HELD</text>
+
+    <rect x="1660" y="814" width="130" height="32" rx="16" fill="#FEF2F2" stroke="#B45309" stroke-width="1.2"/>
+    <text x="1725" y="835" font-size="10.5" fill="#78350F" text-anchor="middle">DIGESTED</text>
+
+    <rect x="1660" y="854" width="130" height="32" rx="16" fill="#FEF2F2" stroke="#B45309" stroke-width="1.2"/>
+    <text x="1725" y="875" font-size="10.5" fill="#78350F" text-anchor="middle">REJECTED</text>
+
+    <text x="1185" y="905" font-size="10" font-style="italic" fill="#64748B" text-anchor="middle">Agent decisions (ARCHIVE, HOLD_UNTIL, NOT_AFFECTED, NOT_WORTH, etc.) map to terminal or re-queued states</text>
+  </g>
+
+  <!-- SHARED DATA -->
+  <g>
+    <text x="1185" y="945" font-size="13" font-weight="700" fill="#92400E" text-anchor="middle">SHARED DATA &amp; ARTIFACTS</text>
+
+    <rect x="100" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="210" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">BU Registry</text>
+    <text x="210" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">product-area → BU,</text>
+    <text x="210" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">versioned YAML</text>
+
+    <rect x="340" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="450" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">BU Profiles</text>
+    <text x="450" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">heads, preferences,</text>
+    <text x="450" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">OKRs, quiet hours</text>
+
+    <rect x="580" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="690" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">Decision Criteria</text>
+    <text x="690" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">six-gate judgment doc</text>
+    <text x="690" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">(source for agent prompts)</text>
+
+    <rect x="820" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="930" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">Message Templates</text>
+    <text x="930" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">short / Teams / email</text>
+    <text x="930" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">variants per channel</text>
+
+    <rect x="1060" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="1170" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">Policy Config</text>
+    <text x="1170" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">thresholds, restricted</text>
+    <text x="1170" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">terms, rate limits</text>
+
+    <rect x="1300" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="1410" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">Engagement History</text>
+    <text x="1410" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">opens, clicks,</text>
+    <text x="1410" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">useful / not useful</text>
+
+    <rect x="1540" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="1650" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">Audit Log</text>
+    <text x="1650" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">every decision + reason,</text>
+    <text x="1650" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">replayable</text>
+
+    <rect x="1780" y="960" width="220" height="70" rx="6" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="1890" y="983" font-size="12" font-weight="600" fill="#78350F" text-anchor="middle">Pending / Backlog</text>
+    <text x="1890" y="1000" font-size="10.5" fill="#92400E" text-anchor="middle">HOLD_UNTIL queue,</text>
+    <text x="1890" y="1015" font-size="10.5" fill="#92400E" text-anchor="middle">HOLD_INDEFINITE items</text>
+  </g>
+
+  <!-- Operator commands band -->
+  <g>
+    <rect x="60" y="1060" width="1980" height="86" rx="6" fill="#F8FAFC" stroke="#64748B" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="80" y="1086" font-size="13" font-weight="700" fill="#1E293B">OPERATOR COMMANDS (Claude Code slash commands)</text>
+    <text x="80" y="1108" font-size="11.5" fill="#475569">/ingest &lt;source&gt;   ·   /dryrun &lt;change-id&gt;   ·   /approve &lt;change-id&gt;   ·   /reject &lt;change-id&gt;   ·   /edit &lt;change-id&gt;   ·   /answer &lt;change-id&gt; &lt;responses&gt;</text>
+    <text x="80" y="1126" font-size="11.5" fill="#475569">/replay &lt;change-id&gt;   ·   /pending   ·   /digest   ·   /audit &lt;date-range&gt;   ·   /metrics   ·   /explain &lt;change-id&gt; (shows full decision chain from all gates)</text>
+    <text x="80" y="1140" font-size="10.5" font-style="italic" fill="#64748B">All commands write to the audit log. /explain is the key operator tool for understanding why an agent made a decision.</text>
+  </g>
+
+  <!-- LEGEND -->
+  <g>
+    <text x="60" y="1185" font-size="13" font-weight="700" fill="#1E293B">LEGEND</text>
+
+    <rect x="60" y="1200" width="28" height="22" rx="4" fill="#EEF2FF" stroke="#4F46E5" stroke-width="2"/>
+    <text x="97" y="1216" font-size="11" fill="#1E293B">◆ Agent (LLM decision-maker)</text>
+
+    <rect x="290" y="1200" width="28" height="22" rx="4" fill="#FFFFFF" stroke="#6366F1" stroke-width="1.5"/>
+    <text x="327" y="1216" font-size="11" fill="#1E293B">Decision gate (inside an agent)</text>
+
+    <rect x="540" y="1200" width="28" height="22" rx="4" fill="#F1F5F9" stroke="#64748B" stroke-width="1" stroke-dasharray="4 3"/>
+    <text x="577" y="1216" font-size="11" fill="#1E293B">Code / skill (deterministic)</text>
+
+    <rect x="790" y="1200" width="28" height="22" rx="4" fill="#FFFBEB" stroke="#F59E0B" stroke-width="1.5"/>
+    <text x="827" y="1216" font-size="11" fill="#1E293B">Shared data / artifact</text>
+
+    <rect x="1010" y="1200" width="28" height="22" rx="4" fill="#FEFCE8" stroke="#CA8A04" stroke-width="2"/>
+    <text x="1047" y="1216" font-size="11" fill="#1E293B">HITL gate</text>
+
+    <rect x="1160" y="1200" width="28" height="22" rx="4" fill="#FEF2F2" stroke="#FCA5A5" stroke-width="1.5"/>
+    <text x="1197" y="1216" font-size="11" fill="#1E293B">Guardrail (policy invariant)</text>
+
+    <g transform="translate(1400, 1200)">
+      <text x="0" y="12" font-size="11" font-weight="700" fill="#15803D">green</text>
+      <text x="40" y="12" font-size="11" fill="#1E293B">= proceed</text>
+      <text x="120" y="12" font-size="11" font-weight="700" fill="#B45309">amber</text>
+      <text x="160" y="12" font-size="11" fill="#1E293B">= hold / weak</text>
+      <text x="250" y="12" font-size="11" font-weight="700" fill="#BE185D">red</text>
+      <text x="275" y="12" font-size="11" fill="#1E293B">= escalate / unresolvable</text>
+    </g>
+  </g>
+
+  <!-- Why this is a real agent team -->
+  <g>
+    <rect x="60" y="1245" width="980" height="180" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="80" y="1270" font-size="13" font-weight="700" fill="#1E293B">WHY THIS IS A REAL AGENT TEAM</text>
+    <text x="80" y="1293" font-size="12" fill="#334155">• Each agent is a <tspan font-weight="700">decision-maker</tspan>, not a task-executor. Agents return verbs (COMMUNICATE, HOLD, NOT_AFFECTED, WORTH_SENDING,</text>
+    <text x="80" y="1310" font-size="12" fill="#334155">  SEND_NOW, ESCALATE, …) that the orchestrator respects. The agents decide when to hand off and when to stop.</text>
+    <text x="80" y="1330" font-size="12" fill="#334155">• Six judgment gates distributed across the three agents; each gate has explicit signals, decision verbs, and failure modes.</text>
+    <text x="80" y="1347" font-size="12" fill="#334155">• Orchestrator is <tspan font-weight="700">code</tspan> — it manages state, respects agent decisions, enforces policy invariants, handles HITL.</text>
+    <text x="80" y="1364" font-size="12" fill="#334155">• Policy invariants (quiet hours, rate limits, PII, approved channels) are enforced in code — not negotiable by agent reasoning.</text>
+    <text x="80" y="1381" font-size="12" fill="#334155">• Every decision is logged with its reason. /explain shows the full decision chain for any change event.</text>
+    <text x="80" y="1401" font-size="12" fill="#334155">• BUAtlas runs in parallel — one isolated invocation per candidate BU — preventing cross-BU context contamination.</text>
+    <text x="80" y="1418" font-size="12" fill="#334155">• Decision criteria live in a separate document and drive all three agent prompts; updating criteria updates the prompts.</text>
+  </g>
+
+  <!-- How this differs from a pipeline -->
+  <g>
+    <rect x="1060" y="1245" width="980" height="180" rx="6" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+    <text x="1080" y="1270" font-size="13" font-weight="700" fill="#1E293B">HOW THIS DIFFERS FROM A PIPELINE OF AGENTS</text>
+    <text x="1080" y="1293" font-size="12" fill="#334155">Pipeline: "call agent A, then B, then C, then send." Agents do tasks.</text>
+    <text x="1080" y="1313" font-size="12" fill="#334155">This: "Agent A decides whether there's anything to communicate, and if yes, whether it's ripe, and if yes, whether it's</text>
+    <text x="1080" y="1330" font-size="12" fill="#334155">clear enough to hand off. Agent B decides whether each BU is actually affected, and if yes, whether the draft is</text>
+    <text x="1080" y="1347" font-size="12" fill="#334155">worth that recipient's attention. Agent C decides whether now is the right moment to send." Agents exercise judgment.</text>
+    <text x="1080" y="1371" font-size="12" fill="#334155">Any gate can return a <tspan font-weight="700">stop</tspan> verb (ARCHIVE, HOLD_INDEFINITE, NOT_AFFECTED, NOT_WORTH) and the work ends there.</text>
+    <text x="1080" y="1388" font-size="12" fill="#334155">Any gate can return an <tspan font-weight="700">escalate</tspan> verb and a human takes over. Any gate can return a <tspan font-weight="700">defer</tspan> verb and the work re-queues.</text>
+    <text x="1080" y="1410" font-size="12" fill="#334155">The default bias is <tspan font-weight="700">not to send</tspan> unless concrete signals argue for sending. Recipient attention is the scarce resource.</text>
+  </g>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748B"/>
+    </marker>
+    <marker id="arrowIndigo" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#4F46E5"/>
+    </marker>
+  </defs>
+</svg>

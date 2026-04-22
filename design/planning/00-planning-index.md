@@ -10,9 +10,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 03 (config + fixtures) + 03.5 (session continuity, design docs, CLAUDE.md).
+**Last completed:** Prompt 03.6 (repo hygiene — tracked architecture diagrams, prompt archives, build plan; reverted hello.py).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 03.5 of 14. Schemas (prompt 02), config/fixtures (prompt 03), and session-continuity infrastructure (prompt 03.5) are done. Prompt 04 (orchestrator spec, extending CLAUDE.md) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 03.6 of 14. Schemas (prompt 02), config/fixtures (prompt 03), session-continuity (prompt 03.5), and repo hygiene (prompt 03.6) are done. Prompt 04 (orchestrator spec, extending CLAUDE.md) is next.
 
 ---
 
@@ -53,6 +53,9 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | 14 | Config loader | `src/pulsecraft/config/` | 03 | Typed loader API: get_bu_registry, get_bu_profile, get_policy, get_channel_policy |
 | 15 | Synthetic change fixtures | `fixtures/changes/` (8 files) | 03 | Decision-verb coverage fixture set |
 | 16 | CLAUDE.md | `CLAUDE.md` | 03.5 | Standing instructions for all future Claude Code sessions |
+| 17 | Build plan | `prompts/build-plan.md` | 03.6 | Single-page build overview: phases, prompts, what each produces |
+| 18 | Architecture diagram | `design/architecture.svg` + `design/architecture.png` | 03.6 | Now tracked in git; generated in prompt 01 |
+| 19 | Prompt archives (00–02) | `prompts/00-repo-scaffold.md`, `prompts/01-commit-planning-docs.md`, `prompts/02-schemas.md` | 03.6 | Prompt source files now tracked (03 and 03.5 were already committed) |
 
 ---
 
@@ -118,6 +121,7 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 02 | `prompts/02-schemas.md` | JSON schemas for data contracts | ✅ Done |
 | 03 | `prompts/03-config-fixtures.md` | BU registry, profiles, policy, fixtures | ✅ Done |
 | 03.5 | `prompts/03.5-session-continuity.md` | CLAUDE.md, design docs, planning index update | ✅ Done |
+| 03.6 | *(inline)* | Repo hygiene — track untracked files, revert hello.py, sync CLAUDE.md + planning index | ✅ Done |
 | 04 | `prompts/04-claude-md-orchestrator.md` | Orchestrator spec (extends CLAUDE.md) | ⏳ Next |
 | 05 | `prompts/05-agent-signalscribe.md` | SignalScribe prompt | ⏳ |
 | 06 | `prompts/06-agent-buatlas.md` | BUAtlas prompt | ⏳ |

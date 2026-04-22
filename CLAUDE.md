@@ -24,7 +24,8 @@
 - ✅ 01 — Commit planning documents (problem statement, ADRs, decision criteria, architecture)
 - ✅ 02 — JSON schemas + Pydantic models for data contracts
 - ✅ 03 — Config files (BU registry, profiles, policy, channel policy) + synthetic change fixtures
-- ✅ 03.5 — Session continuity setup (this prompt)
+- ✅ 03.5 — Session continuity setup (CLAUDE.md, design docs, planning index)
+- ✅ 03.6 — Repo hygiene (track untracked files, revert hello.py, sync CLAUDE.md + planning index)
 
 **Prompts remaining:**
 - ⏳ 04 — CLAUDE.md orchestrator spec (extends this file with orchestrator section)
@@ -160,5 +161,5 @@ If a prompt authors **commands**, list them in the Commands section of this file
 
 ---
 
-*Last updated: prompt 03.5 (session continuity setup).*
+*Last updated: prompt 03.6 (repo hygiene — tracked architecture diagrams, prompt archives, build plan).*
 *Next prompt: 04 — orchestrator spec (will extend this file with an "Orchestrator" section).*
