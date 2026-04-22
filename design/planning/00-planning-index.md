@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 08 (ingest skills — 5 source adapters, normalizer, redaction helper, stub source fixtures, CLI restructured to command group with `ingest` subcommand; 390 tests passing).
+**Last completed:** Prompt 09 (registry/policy/audit skills — extracted from engine.py; 5 new skill modules + AuditReader Protocol; 442 tests passing).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 08. Prompt 09 (registry, policy, audit skills) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 09. Prompt 10 (delivery rendering skills) is next.
 
 ---
 
@@ -93,6 +93,13 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | 55 | CLI command group | `src/pulsecraft/cli/main.py` | 08 | Restructured to `pulsecraft run-change` + `pulsecraft ingest` command group |
 | 56 | Ingest unit tests | `tests/unit/skills/ingest/` (6 files) | 08 | ~110 unit tests: redaction, normalizer, each adapter |
 | 57 | Ingest integration tests | `tests/integration/skills/test_ingest_cli.py` | 08 | 8 subprocess-based CLI integration tests |
+| 58 | Registry skill | `src/pulsecraft/skills/registry.py` | 09 | lookup_bu_candidates — exact owned_product_areas intersection |
+| 59 | Policy skill | `src/pulsecraft/skills/policy.py` | 09 | check_confidence_threshold, check_restricted_terms, evaluate_hitl_triggers; RestrictedTermHit, HITLTrigger dataclasses |
+| 60 | Dedupe skill | `src/pulsecraft/skills/dedupe.py` | 09 | compute_dedupe_key (SHA-256), has_recent_duplicate (AuditReader scan) |
+| 61 | Audit skill | `src/pulsecraft/skills/audit_skill.py` | 09 | Thin wrapper re-exporting AuditWriter/AuditRecord for use in hooks/commands |
+| 62 | Past engagement skill | `src/pulsecraft/skills/past_engagement.py` | 09 | lookup_past_engagement — reconstruct BU history from DELIVERY_ATTEMPT records |
+| 63 | AuditReader Protocol | `src/pulsecraft/orchestrator/audit.py` | 09 | Protocol with read_chain + read_recent_events; AuditWriter satisfies it |
+| 64 | Skills unit tests | `tests/unit/skills/test_registry.py`, `test_policy.py`, `test_dedupe.py`, `test_past_engagement.py` | 09 | 52 new unit tests across 4 test modules |
 
 ---
 
@@ -165,7 +172,7 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 07 | `prompts/07-agent-pushpilot.md` | PushPilot prompt | ✅ Done |
 | 07.7 | `prompts/07.7-demo-reliability-fix.md` | BU pre-filter vocabulary expansion — fixture 001 determinism | ✅ Done |
 | 08 | `prompts/08-skills-ingest.md` | Ingest adapter skills | ✅ Done |
-| 09 | `prompts/09-skills-registry-policy.md` | Registry, policy, audit skills | ⏳ |
+| 09 | `prompts/09-skills-registry-policy.md` | Registry, policy, audit skills — extracted from engine.py | ✅ Done |
 | 10 | `prompts/10-skills-delivery.md` | Delivery rendering skills | ⏳ |
 | 11 | `prompts/11-commands.md` | Operator slash commands | ⏳ |
 | 12 | `prompts/12-hooks.md` | Guardrail hooks in settings.json | ⏳ |

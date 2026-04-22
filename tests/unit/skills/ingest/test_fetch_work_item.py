@@ -8,7 +8,6 @@ from pulsecraft.schemas.change_artifact import ChangeArtifact
 from pulsecraft.skills.ingest.errors import IngestMalformed, IngestNotFound
 from pulsecraft.skills.ingest.fetch_work_item import fetch_work_item
 
-
 _JIRA_PAYLOAD = {
     "key": "JIRA-ALPHA-1234",
     "fields": {

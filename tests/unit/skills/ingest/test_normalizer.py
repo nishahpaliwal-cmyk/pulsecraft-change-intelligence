@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
-from pulsecraft.schemas.change_artifact import Author, ChangeArtifact
+from pulsecraft.schemas.change_artifact import ChangeArtifact
 from pulsecraft.skills.ingest.errors import IngestMalformed
 from pulsecraft.skills.ingest.normalizer import normalize_to_change_artifact
 
@@ -83,18 +83,18 @@ class TestDefaultFields:
         assert artifact.change_id == fixed_id
 
     def test_ingested_at_generated_when_not_provided(self) -> None:
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         artifact = normalize_to_change_artifact(
             source_type="release_note",
             source_ref="RN-TEST-001",
             title="Test",
             raw_text="body",
         )
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
         assert before <= artifact.ingested_at <= after
 
     def test_ingested_at_used_when_provided(self) -> None:
-        ts = datetime(2026, 4, 15, 9, 0, 0, tzinfo=timezone.utc)
+        ts = datetime(2026, 4, 15, 9, 0, 0, tzinfo=UTC)
         artifact = normalize_to_change_artifact(
             source_type="release_note",
             source_ref="RN-TEST-001",

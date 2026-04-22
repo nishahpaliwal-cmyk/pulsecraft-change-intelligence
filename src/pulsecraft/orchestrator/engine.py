@@ -55,11 +55,12 @@ from pulsecraft.schemas.delivery_plan import DeliveryDecision
 from pulsecraft.schemas.personalized_brief import (
     MessageQuality,
     PersonalizedBrief,
-    Priority,
     Relevance,
 )
 from pulsecraft.schemas.policy import Policy
 from pulsecraft.schemas.push_pilot_output import PushPilotOutput
+from pulsecraft.skills.policy import check_confidence_threshold, evaluate_hitl_triggers
+from pulsecraft.skills.registry import lookup_bu_candidates
 
 logger = structlog.get_logger(__name__)
 
@@ -271,133 +272,6 @@ class Orchestrator:
                 return HITLReason.UNRESOLVABLE
         return HITLReason.CONFIDENCE_BELOW_THRESHOLD
 
-    # ── confidence threshold checks ───────────────────────────────────────
-
-    def _check_signalscribe_confidence(
-        self, change_brief: ChangeBrief, policy: Policy
-    ) -> tuple[bool, str]:
-        """Return (passed, reason). Fails if any gate confidence is below threshold."""
-        thresholds = policy.confidence_thresholds.signalscribe
-        for d in change_brief.decisions:
-            if d.gate == 1:
-                threshold = (
-                    thresholds.gate_1_communicate
-                    if d.verb == DecisionVerb.COMMUNICATE
-                    else thresholds.gate_1_archive
-                )
-                if d.confidence < threshold:
-                    return False, f"gate_1 confidence {d.confidence:.2f} < {threshold:.2f}"
-            elif d.gate == 2 and d.confidence < thresholds.gate_2_ripe:
-                return False, f"gate_2 confidence {d.confidence:.2f} < {thresholds.gate_2_ripe:.2f}"
-            elif d.gate == 3 and d.confidence < thresholds.gate_3_ready:
-                return (
-                    False,
-                    f"gate_3 confidence {d.confidence:.2f} < {thresholds.gate_3_ready:.2f}",
-                )
-        return True, "all thresholds met"
-
-    def _check_buatlas_confidence(
-        self, brief: PersonalizedBrief, policy: Policy
-    ) -> tuple[bool, str]:
-        thresholds = policy.confidence_thresholds.buatlas
-        for d in brief.decisions:
-            if d.gate == 4 and d.confidence < thresholds.gate_4_any:
-                return False, f"gate_4 confidence {d.confidence:.2f} < {thresholds.gate_4_any:.2f}"
-            elif d.gate == 5 and d.confidence < thresholds.gate_5_worth_sending:
-                return (
-                    False,
-                    f"gate_5 confidence {d.confidence:.2f} < {thresholds.gate_5_worth_sending:.2f}",
-                )
-        return True, "all thresholds met"
-
-    # ── restricted term checks ────────────────────────────────────────────
-
-    def _collect_message_text(self, brief: PersonalizedBrief) -> str:
-        """Concatenate all message variants for term scanning."""
-        if brief.message_variants is None:
-            return ""
-        parts = [
-            brief.message_variants.push_short or "",
-            brief.message_variants.teams_medium or "",
-            brief.message_variants.email_long or "",
-        ]
-        return " ".join(parts).lower()
-
-    def _check_restricted_terms(
-        self, brief: PersonalizedBrief, policy: Policy
-    ) -> tuple[bool, HITLReason | None, str]:
-        """Check message text against all restricted term categories.
-
-        Returns (clean, hitl_reason_or_none, description).
-        """
-        text = self._collect_message_text(brief)
-        if not text:
-            return True, None, "no message text"
-
-        for term in policy.restricted_terms.sensitive_data_markers:
-            if term.lower() in text:
-                return (
-                    False,
-                    HITLReason.RESTRICTED_TERM_DETECTED,
-                    f"sensitive data marker: '{term}'",
-                )
-
-        for term in policy.restricted_terms.commitments_and_dates:
-            if term.lower() in text:
-                return False, HITLReason.DRAFT_HAS_COMMITMENT, f"commitment/date phrase: '{term}'"
-
-        for term in policy.restricted_terms.scientific_communication:
-            if term.lower() in text:
-                return False, HITLReason.MLR_SENSITIVE, f"scientific communication term: '{term}'"
-
-        return True, None, "no restricted terms detected"
-
-    # ── HITL trigger evaluation ───────────────────────────────────────────
-
-    def _evaluate_hitl_triggers(
-        self,
-        personalized_briefs: dict[str, PersonalizedBrief],
-        policy: Policy,
-        change_id: str,
-    ) -> tuple[bool, HITLReason | None, str]:
-        """Return (triggered, reason, description). Checks all HITL policy triggers."""
-        active_triggers = set(policy.hitl_triggers)
-
-        for bu_id, brief in personalized_briefs.items():
-            if brief.relevance == Relevance.NOT_AFFECTED:
-                continue
-
-            # priority_p0
-            if "priority_p0" in active_triggers and brief.priority == Priority.P0:
-                return True, HITLReason.PRIORITY_P0, f"bu={bu_id} has priority P0"
-
-            # second_weak_from_gate_5
-            if (
-                "second_weak_from_gate_5" in active_triggers
-                and brief.message_quality == MessageQuality.WEAK
-                and brief.regeneration_attempts >= 1
-            ):
-                return True, HITLReason.SECOND_WEAK_FROM_GATE_5, f"bu={bu_id} WEAK after regen"
-
-            # confidence_below_threshold
-            if "confidence_below_threshold" in active_triggers:
-                conf_ok, conf_reason = self._check_buatlas_confidence(brief, policy)
-                if not conf_ok:
-                    return True, HITLReason.CONFIDENCE_BELOW_THRESHOLD, f"bu={bu_id} {conf_reason}"
-
-            # buatlas escalate
-            if "any_agent_escalate" in active_triggers:
-                for d in brief.decisions:
-                    if d.verb == DecisionVerb.ESCALATE:
-                        return True, HITLReason.AGENT_ESCALATE, f"bu={bu_id} BUAtlas ESCALATE"
-
-            # restricted term checks
-            clean, reason, description = self._check_restricted_terms(brief, policy)
-            if not clean:
-                return True, reason, f"bu={bu_id} {description}"
-
-        return False, None, "no HITL triggers fired"
-
     # ── PushPilot policy enforcement ──────────────────────────────────────
 
     @staticmethod
@@ -576,19 +450,6 @@ class Orchestrator:
 
         return final_output
 
-    # ── BU pre-filter ─────────────────────────────────────────────────────
-
-    def _find_candidate_bus(self, change_brief: ChangeBrief) -> list[str]:
-        """Return BU IDs whose owned_product_areas overlap with change_brief.impact_areas."""
-        impact_areas = set(change_brief.impact_areas)
-        registry = get_bu_registry()
-        candidates = []
-        for entry in registry.bus:
-            owned = set(entry.owned_product_areas)
-            if owned & impact_areas:
-                candidates.append(entry.bu_id)
-        return candidates
-
     # ── delivery execution (mock) ─────────────────────────────────────────
 
     def _execute_delivery(
@@ -692,7 +553,13 @@ class Orchestrator:
 
         if event == "signalscribe_communicate_ripe_ready":
             # Only check confidence when agent fully committed to proceeding
-            conf_ok, conf_reason = self._check_signalscribe_confidence(change_brief, policy)
+            conf_ok = True
+            conf_reason = "all thresholds met"
+            for _d in change_brief.decisions:
+                if not check_confidence_threshold(_d, policy):
+                    conf_ok = False
+                    conf_reason = f"gate_{_d.gate} confidence {_d.confidence:.2f} below threshold"
+                    break
             self._write_policy_check(
                 change_id,
                 "signalscribe_confidence_check",
@@ -734,7 +601,7 @@ class Orchestrator:
             return result
 
         # ── Step 3: BU pre-filter → ROUTED ───────────────────────────────
-        candidate_buses = self._find_candidate_bus(change_brief)
+        candidate_buses = lookup_bu_candidates(change_brief, get_bu_registry())
         if not candidate_buses:
             state = self._transition(change_id, state, "no_candidate_bus", "no BU registry matches")
             result.terminal_state = state
@@ -870,13 +737,13 @@ class Orchestrator:
         )
 
         # ── Step 5: HITL trigger evaluation ──────────────────────────────
-        hitl_fired, step5_reason, hitl_desc = self._evaluate_hitl_triggers(
-            personalized_briefs, policy, change_id
-        )
+        hitl_triggers = evaluate_hitl_triggers(personalized_briefs, policy)
+        hitl_fired = len(hitl_triggers) > 0
+        hitl_desc = hitl_triggers[0].description if hitl_triggers else "no HITL triggers fired"
         self._write_policy_check(change_id, "hitl_trigger_evaluation", not hitl_fired, hitl_desc)
 
         if hitl_fired:
-            assert step5_reason is not None
+            step5_reason = hitl_triggers[0].reason
             state = self._transition(change_id, state, "hitl_triggered", hitl_desc)
             self._hitl.enqueue(
                 change_id, step5_reason, {"brief_id": change_brief.brief_id, "reason": hitl_desc}

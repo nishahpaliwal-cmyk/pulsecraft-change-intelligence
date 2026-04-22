@@ -32,9 +32,9 @@
 - ✅ 07 — PushPilot agent (gate 6) — delivery timing, agent-vs-code split, policy enforcement layer
 - ✅ 07.7 — Demo reliability fix: BU pre-filter vocabulary expansion for fixture 001 determinism
 - ✅ 08 — Skills: ingest adapters (5 adapters + normalizer + redaction + CLI restructure, 390 tests)
+- ✅ 09 — Skills: registry, policy, dedupe, audit, past_engagement (extracted from engine.py, 442 tests)
 
 **Prompts remaining:**
-- ⏳ 09 — Skills: registry, policy, audit
 - ⏳ 10 — Skills: delivery rendering
 - ⏳ 11 — Operator slash commands
 - ⏳ 12 — Guardrail hooks
@@ -125,6 +125,25 @@ Location: `src/pulsecraft/skills/ingest/`
 | `redact` | Regex-based PII/credential scrub (belt-and-suspenders; full guardrail in prompt 12) |
 
 Each adapter accepts an optional `transport: Callable[[str], dict] | None` parameter. When `None`, reads from `fixtures/sources/<type>/<ref>.json` (dev mode). Errors: `IngestNotFound`, `IngestUnauthorized`, `IngestMalformed`.
+
+### Registry / policy / audit skills (prompt 09)
+Location: `src/pulsecraft/skills/`
+
+| Skill | Purpose | Inputs |
+|---|---|---|
+| `lookup_bu_candidates` | BU pre-filter: intersect ChangeBrief.impact_areas with registry (exact owned_product_areas match) | ChangeBrief, BURegistry |
+| `check_confidence_threshold` | Compare a Decision's confidence against the policy threshold for its gate+verb | Decision, Policy |
+| `check_restricted_terms` | Scan text for commitment/MLR/sensitive-data phrases; returns list of RestrictedTermHit | str, Policy |
+| `evaluate_hitl_triggers` | Aggregate all HITL triggers across PersonalizedBriefs; returns list of HITLTrigger (empty = no triggers) | dict[str,PersonalizedBrief], Policy |
+| `compute_dedupe_key` | Deterministic SHA-256 hash for (change_id, bu_id, recipient_id, variant_id) | 4 strings |
+| `has_recent_duplicate` | Scan DELIVERY_ATTEMPT audit records for matching input_hash within window | dedupe_key, AuditReader, window_hours |
+| `write_audit` | Thin wrapper over AuditWriter.log_event for use in hooks/commands | AuditRecord, AuditWriter |
+| `lookup_past_engagement` | Reconstruct PastEngagement from DELIVERY_ATTEMPT audit history for a BU | bu_id, recipient_id, AuditReader |
+
+Called from: orchestrator (engine.py), hooks (prompt 12), operator commands (prompt 11).
+
+New types: `RestrictedTermHit` and `HITLTrigger` (dataclasses in `skills/policy.py`).
+`AuditReader` Protocol defined in `orchestrator/audit.py`; `AuditWriter` satisfies it.
 
 ## Commands authored so far
 
@@ -264,5 +283,5 @@ Uses default mock agents. Prints Rich tables: state-transition audit chain, BU r
 
 ---
 
-*Last updated: prompt 08 (ingest skills — 5 adapters, normalizer, redaction, CLI restructure to command group; 390 tests passing).*
-*Next prompt: 09 — Skills: registry, policy, audit.*
+*Last updated: prompt 09 (registry/policy/audit skills — extracted from engine.py; 5 new skill modules; AuditReader Protocol; 442 tests passing).*
+*Next prompt: 10 — Skills: delivery rendering.*

@@ -8,18 +8,22 @@ failures are logged loudly but never propagate to the orchestrator's control flo
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import Protocol
 
 import structlog
 
-from pulsecraft.schemas.audit_record import AuditRecord
-
-if TYPE_CHECKING:
-    pass
+from pulsecraft.schemas.audit_record import AuditRecord, EventType
 
 logger = structlog.get_logger(__name__)
+
+
+class AuditReader(Protocol):
+    """Read-only view of the audit log used by skills and hooks."""
+
+    def read_chain(self, change_id: str) -> list[AuditRecord]: ...
+    def read_recent_events(self, event_type: EventType, window_hours: int) -> list[AuditRecord]: ...
 
 
 class AuditWriter:
@@ -80,6 +84,33 @@ class AuditWriter:
                                 change_id=change_id,
                                 file=str(filepath),
                             )
+        records.sort(key=lambda r: r.timestamp)
+        return records
+
+    def read_recent_events(self, event_type: EventType, window_hours: int) -> list[AuditRecord]:
+        """Return all records of event_type written within the last window_hours."""
+        cutoff = datetime.now(UTC) - timedelta(hours=window_hours)
+        records: list[AuditRecord] = []
+        if not self._root.exists():
+            return records
+        for day_dir in sorted(self._root.iterdir()):
+            if not day_dir.is_dir():
+                continue
+            for filepath in day_dir.glob("*.jsonl"):
+                try:
+                    with filepath.open(encoding="utf-8") as fh:
+                        for line in fh:
+                            line = line.strip()
+                            if not line:
+                                continue
+                            try:
+                                r = AuditRecord.model_validate_json(line)
+                                if r.event_type == event_type and r.timestamp >= cutoff:
+                                    records.append(r)
+                            except Exception:
+                                pass
+                except Exception:
+                    pass
         records.sort(key=lambda r: r.timestamp)
         return records
 
