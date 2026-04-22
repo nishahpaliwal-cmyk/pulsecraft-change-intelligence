@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 07 (PushPilot — third and final real LLM-backed agent; gate 6; delivery timing judgment; agent-vs-code policy enforcement split; eval script; CLI --real-pushpilot flag; full end-to-end pipeline with all three real agents).
+**Last completed:** Prompt 07.7 (demo reliability fix — expanded bu_alpha owned_product_areas to align with SignalScribe's observed impact_areas vocabulary; fixture 001 now deterministically reaches AWAITING_HITL in 5/5 consecutive runs).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 07 of 14. Prompt 08 (ingest adapter skills) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 07.7. Prompt 08 (ingest adapter skills) is next.
 
 ---
 
@@ -84,6 +84,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | 46 | PushPilot integration tests | `tests/integration/agents/test_pushpilot_integration.py` | 07 | 6 real-API tests; @pytest.mark.llm; schema, verb consistency, P1/P2 tendency |
 | 47 | Full pipeline tests | `tests/integration/orchestrator/test_full_pipeline.py` | 07 | 10 tests; all 3 real agents; terminal state ranges per fixture |
 | 48 | Integration conftest | `tests/integration/conftest.py` | 07 | Shared .env loader for all integration/LLM tests |
+| 49 | BU registry expansion | `config/bu_registry.yaml` + `config/bu_profiles.yaml` | 07.7 | bu_alpha owned_product_areas expanded to match SignalScribe's observed vocabulary |
 
 ---
 
@@ -152,8 +153,9 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 03.6 | *(inline)* | Repo hygiene — track untracked files, revert hello.py, sync CLAUDE.md + planning index | ✅ Done |
 | 04 | `prompts/04-orchestrator.md` | Deterministic orchestrator + CLI + 187 tests | ✅ Done |
 | 05 | `prompts/05-agent-signalscribe.md` | SignalScribe agent — gates 1, 2, 3; real LLM | ✅ Done |
-| 06 | `prompts/06-agent-buatlas.md` | BUAtlas prompt | ⏳ |
-| 07 | `prompts/07-agent-pushpilot.md` | PushPilot prompt | ⏳ |
+| 06 | `prompts/06-agent-buatlas.md` | BUAtlas prompt | ✅ Done |
+| 07 | `prompts/07-agent-pushpilot.md` | PushPilot prompt | ✅ Done |
+| 07.7 | `prompts/07.7-demo-reliability-fix.md` | BU pre-filter vocabulary expansion — fixture 001 determinism | ✅ Done |
 | 08 | `prompts/08-skills-ingest.md` | Ingest adapter skills | ⏳ |
 | 09 | `prompts/09-skills-registry-policy.md` | Registry, policy, audit skills | ⏳ |
 | 10 | `prompts/10-skills-delivery.md` | Delivery rendering skills | ⏳ |

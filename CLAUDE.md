@@ -30,6 +30,7 @@
 - ✅ 05 — SignalScribe agent (gates 1, 2, 3) — real LLM-backed, Claude Sonnet 4.6
 - ✅ 06 — BUAtlas agent (gates 4, 5) — parallel per-BU personalization, asyncio fan-out, FanoutFailure isolation
 - ✅ 07 — PushPilot agent (gate 6) — delivery timing, agent-vs-code split, policy enforcement layer
+- ✅ 07.7 — Demo reliability fix: BU pre-filter vocabulary expansion for fixture 001 determinism
 
 **Prompts remaining:**
 - ⏳ 08 — Skills: ingest adapters
@@ -252,5 +253,5 @@ Uses default mock agents. Prints Rich tables: state-transition audit chain, BU r
 
 ---
 
-*Last updated: prompt 07 (PushPilot — third and final real LLM-backed agent, gate 6, delivery timing judgment, agent-vs-code policy enforcement split, eval script, CLI --real-pushpilot flag, full end-to-end pipeline with all three real agents).*
+*Last updated: prompt 07.7 (demo reliability fix — expanded bu_alpha owned_product_areas to align with SignalScribe's observed impact_areas vocabulary; fixture 001 now deterministically reaches AWAITING_HITL).*
 *Next prompt: 08 — Skills: ingest adapters.*
