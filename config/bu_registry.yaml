@@ -8,10 +8,22 @@ bus:
   - bu_id: bu_alpha
     name: "Alpha BU"
     therapeutic_area: immunology
+    # NOTE (prompt 07.7): owned_product_areas expanded to align with SignalScribe's
+    # observed vocabulary on fixture 001. Added terms:
+    #   prior_authorization_submission — SignalScribe appends _submission to the base term (3/3 runs)
+    #   specialty_pharmacy_workflow    — SignalScribe appends _workflow to the base term (3/3 runs)
+    #   prescriber_attestation         — PA-workflow-specific sub-step (3/3 runs)
+    #   formulary_lookup_integration   — formulary lookup is part of the PA ordering flow (2/3 runs)
+    # All additions are scoped to bu_alpha's actual ownership (prior auth, HCP portal ordering,
+    # specialty pharmacy). Evaluated for regressions on fixtures 006 and 007 — no new false positives.
     owned_product_areas:
       - specialty_pharmacy
+      - specialty_pharmacy_workflow
       - hcp_portal_ordering
       - prior_authorization
+      - prior_authorization_submission
+      - prescriber_attestation
+      - formulary_lookup_integration
     keywords:
       - specialty pharmacy
       - specialty distribution

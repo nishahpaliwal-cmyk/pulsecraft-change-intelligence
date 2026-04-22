@@ -14,10 +14,15 @@ profiles:
       role: "Head of Alpha BU"
       delegate_ids:
         - "<delegate-alpha-1>"
+    # NOTE (prompt 07.7): kept in sync with bu_registry.yaml — see that file for rationale.
     owned_product_areas:
       - specialty_pharmacy
+      - specialty_pharmacy_workflow
       - hcp_portal_ordering
       - prior_authorization
+      - prior_authorization_submission
+      - prescriber_attestation
+      - formulary_lookup_integration
     preferences:
       channels:
         - teams
