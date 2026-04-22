@@ -46,6 +46,7 @@ from pulsecraft.schemas.delivery_plan import (
     RetryCondition,
     RetryPolicy,
 )
+from pulsecraft.schemas.past_engagement import PastEngagement
 from pulsecraft.schemas.personalized_brief import (
     MessageQuality,
     MessageVariants,
@@ -67,6 +68,7 @@ from pulsecraft.schemas.policy import (
     RestrictedTerms,
     SignalScribeThresholds,
 )
+from pulsecraft.schemas.push_pilot_output import PushPilotOutput
 
 __all__ = [
     # bu_registry
@@ -95,6 +97,10 @@ __all__ = [
     "Decision",
     "DecisionAgent",
     "DecisionVerb",
+    # past_engagement
+    "PastEngagement",
+    # push_pilot_output
+    "PushPilotOutput",
     # change_artifact
     "Author",
     "ChangeArtifact",

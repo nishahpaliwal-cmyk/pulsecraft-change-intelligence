@@ -10,9 +10,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 03.6 (repo hygiene — tracked architecture diagrams, prompt archives, build plan; reverted hello.py).
+**Last completed:** Prompt 04 (deterministic orchestrator — state machine, agent Protocols, mock agents, audit writer, HITL queue, engine, CLI command, 187 tests).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 03.6 of 14. Schemas (prompt 02), config/fixtures (prompt 03), session-continuity (prompt 03.5), and repo hygiene (prompt 03.6) are done. Prompt 04 (orchestrator spec, extending CLAUDE.md) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 04 of 14. Schemas (02), config/fixtures (03), session-continuity (03.5), repo hygiene (03.6), and the full orchestrator (04) are done. Prompt 05 (SignalScribe agent) is next.
 
 ---
 
@@ -56,6 +56,15 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | 17 | Build plan | `prompts/build-plan.md` | 03.6 | Single-page build overview: phases, prompts, what each produces |
 | 18 | Architecture diagram | `design/architecture.svg` + `design/architecture.png` | 03.6 | Now tracked in git; generated in prompt 01 |
 | 19 | Prompt archives (00–02) | `prompts/00-repo-scaffold.md`, `prompts/01-commit-planning-docs.md`, `prompts/02-schemas.md` | 03.6 | Prompt source files now tracked (03 and 03.5 were already committed) |
+| 20 | Orchestrator state machine | `src/pulsecraft/orchestrator/states.py` | 04 | WorkflowState StrEnum, TERMINAL_STATES, _TRANSITIONS, apply_transition |
+| 21 | Agent Protocol interfaces | `src/pulsecraft/orchestrator/agent_protocol.py` | 04 | SignalScribeProtocol, BUAtlasProtocol, PushPilotProtocol |
+| 22 | Mock agents | `src/pulsecraft/orchestrator/mock_agents.py` | 04 | MockSignalScribe, MockBUAtlas, MockPushPilot — scripted, no LLM |
+| 23 | Audit writer | `src/pulsecraft/orchestrator/audit.py` | 04 | Append-only JSONL audit chain; read_chain; summary |
+| 24 | HITL queue | `src/pulsecraft/orchestrator/hitl.py` | 04 | File-based queue; HITLReason StrEnum; approve/reject/edit/answer |
+| 25 | Orchestrator engine | `src/pulsecraft/orchestrator/engine.py` | 04 | Orchestrator.run_change(), RunResult dataclass |
+| 26 | CLI command | `src/pulsecraft/cli/main.py` | 04 | `pulsecraft <fixture>` — mock pipeline, Rich output |
+| 27 | New schemas (prompt 04) | `src/pulsecraft/schemas/past_engagement.py`, `push_pilot_output.py` | 04 | PastEngagement (BUAtlas context), PushPilotOutput (gate-6 agent return) |
+| 28 | Orchestrator tests | `tests/unit/orchestrator/`, `tests/integration/orchestrator/` | 04 | 187 total tests; 8 fixture paths, idempotency, audit chain reconstruction |
 
 ---
 
@@ -80,7 +89,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 
 | ID | Decision | Resolution target |
 |---|---|---|
-| O1 | Exact orchestrator code structure | Prompt 04 |
+| ~~O1~~ | ~~Exact orchestrator code structure~~ | ✅ Resolved — prompt 04 |
 | O2 | Exact prompt format per agent | Prompts 05–07 |
 | O3 | Confidence thresholds (numeric) — draft in config/policy.yaml | Tuned in eval (prompt 14) |
 | O4 | WEAK regeneration retry policy | Prompt 05 |
@@ -122,7 +131,7 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 03 | `prompts/03-config-fixtures.md` | BU registry, profiles, policy, fixtures | ✅ Done |
 | 03.5 | `prompts/03.5-session-continuity.md` | CLAUDE.md, design docs, planning index update | ✅ Done |
 | 03.6 | *(inline)* | Repo hygiene — track untracked files, revert hello.py, sync CLAUDE.md + planning index | ✅ Done |
-| 04 | `prompts/04-claude-md-orchestrator.md` | Orchestrator spec (extends CLAUDE.md) | ⏳ Next |
+| 04 | `prompts/04-orchestrator.md` | Deterministic orchestrator + CLI + 187 tests | ✅ Done |
 | 05 | `prompts/05-agent-signalscribe.md` | SignalScribe prompt | ⏳ |
 | 06 | `prompts/06-agent-buatlas.md` | BUAtlas prompt | ⏳ |
 | 07 | `prompts/07-agent-pushpilot.md` | PushPilot prompt | ⏳ |

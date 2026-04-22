@@ -26,9 +26,9 @@
 - ✅ 03 — Config files (BU registry, profiles, policy, channel policy) + synthetic change fixtures
 - ✅ 03.5 — Session continuity setup (CLAUDE.md, design docs, planning index)
 - ✅ 03.6 — Repo hygiene (track untracked files, revert hello.py, sync CLAUDE.md + planning index)
+- ✅ 04 — Deterministic orchestrator: state machine, agent Protocols, mock agents, audit writer, HITL queue, engine, CLI, 187 tests
 
 **Prompts remaining:**
-- ⏳ 04 — CLAUDE.md orchestrator spec (extends this file with orchestrator section)
 - ⏳ 05 — Agent: SignalScribe (gates 1, 2, 3)
 - ⏳ 06 — Agent: BUAtlas (gates 4, 5, parallel per-BU)
 - ⏳ 07 — Agent: PushPilot (gate 6)
@@ -132,6 +132,73 @@ If a prompt authors **commands**, list them in the Commands section of this file
 
 *(none yet — populated in prompt 12)*
 
+## Orchestrator
+
+The orchestrator lives in `src/pulsecraft/orchestrator/`. It is the deterministic spine of PulseCraft — no LLM calls, all branching driven by agent outputs and policy config.
+
+### Key modules
+
+| Module | Purpose |
+|---|---|
+| `states.py` | `WorkflowState` StrEnum (12 states), `TERMINAL_STATES`, `_TRANSITIONS` dict, `apply_transition()` |
+| `agent_protocol.py` | `SignalScribeProtocol`, `BUAtlasProtocol`, `PushPilotProtocol` — `@runtime_checkable` Protocols |
+| `mock_agents.py` | `MockSignalScribe`, `MockBUAtlas`, `MockPushPilot` — scripted defaults, no LLM calls |
+| `audit.py` | `AuditWriter` — append-only JSONL per `<root>/YYYY-MM-DD/<change_id>.jsonl` |
+| `hitl.py` | `HITLQueue` — file-based HITL queue; `HITLReason` StrEnum (10 reasons) |
+| `engine.py` | `Orchestrator.run_change()` — main pipeline; `RunResult` dataclass |
+
+### State machine
+
+States: `RECEIVED → INTERPRETED → ROUTED → PERSONALIZED → SCHEDULED → DELIVERED`
+
+Terminal states: `DELIVERED`, `ARCHIVED`, `HELD`, `DIGESTED`, `REJECTED`, `FAILED`, `AWAITING_HITL`.
+
+Transitions are defined in `_TRANSITIONS: dict[tuple[WorkflowState, str], WorkflowState]`. Calling `apply_transition()` with an undefined `(state, event)` pair raises `IllegalTransitionError`.
+
+### Agent Protocol pattern
+
+Real agents (prompts 05–07) and mock agents both satisfy the same `Protocol` interface. The orchestrator imports only Protocols — never concrete agent classes. This means agent implementations can change without touching the engine.
+
+- `agent_name` attribute: uses `"_mock"` suffix for mocks (e.g., `"signalscribe_mock"`), so audit logs distinguish mock vs real.
+- `Decision.agent.name`: must match schema pattern `^(signalscribe|buatlas|pushpilot)$`. Mock agents produce Decisions with canonical names.
+
+### Orchestrator pipeline (run_change)
+
+1. **RECEIVED** — accept artifact, write state-transition record
+2. **SignalScribe** — gates 1+2+3: explicit decisions (ESCALATE, NEED_CLARIFICATION, HOLD, ARCHIVE) route to HITL/HELD/ARCHIVED *before* confidence check; confidence only checked on positive `COMMUNICATE+RIPE+READY` path
+3. **BU routing** — `get_bu_registry()` → filter by `owned_product_areas ∩ impact_areas`; empty candidate set → FAILED
+4. **BUAtlas fan-out** — parallel (currently sequential) per-BU personalization; `NOT_AFFECTED` BUs dropped
+5. **HITL trigger evaluation** — ordered: priority_p0, second_weak_from_gate_5, confidence_below_threshold, agent_escalate, restricted_term / MLR_SENSITIVE / draft_has_commitment, dedupe_or_rate_limit_conflict
+6. **PushPilot** — gate 6 per `worth_sending` BUs; `HOLD` decisions route to HELD; all DIGEST → DIGESTED; mix → DELIVERED
+7. **Delivery** — mock delivery logs structlog event; real delivery via PushPilot skill (prompt 10)
+
+### Audit writer
+
+- **Never propagates exceptions** — audit is observability, not correctness. Write failures are logged via structlog only.
+- `read_chain(change_id)` returns `list[AuditRecord]` sorted by timestamp, scanning all date-sharded files.
+- `summary(change_id)` returns a human-readable string suitable for operator review.
+
+### HITL queue
+
+- Files live in `<root>/pending/`, `approved/`, `rejected/`, `archived/`.
+- Every operation writes an `AuditRecord` to the audit chain.
+- `edit()` and `answer_clarification()` modify the pending payload in place (safe — HITL files are single-writer under the orchestrator).
+
+### CLI
+
+```
+pulsecraft <fixture_path> [--audit-dir <path>] [--queue-dir <path>]
+```
+
+Uses default mock agents. Prints Rich tables: state-transition audit chain, BU results, terminal state panel. Useful for local smoke testing of fixtures without any LLM calls.
+
+### Failure modes specific to the orchestrator
+
+- **`IllegalTransitionError`** → an event string was produced that doesn't have a transition defined from the current state. Check `_TRANSITIONS` in `states.py`.
+- **`structlog TypeError: multiple values for argument 'event'`** → `logger.info()` first positional arg IS the `event` field. Never pass `event=...` as a kwarg. Rename to `trigger=` or similar.
+- **BU not in candidate set** → the mock `impact_areas` don't overlap with any BU's `owned_product_areas`. Check `config/bu_registry.yaml` and the mock's default `impact_areas`.
+- **HITL reason mismatch** → explicit agent decisions (ESCALATE, HOLD, etc.) must be checked *before* the confidence threshold check. See `engine.py:_run()` step 2.
+
 ## Common failure modes and fixes
 
 - **`ModuleNotFoundError: No module named 'pulsecraft'`** → you're running system `pytest` instead of venv. Use `.venv/bin/pytest`.
@@ -161,5 +228,5 @@ If a prompt authors **commands**, list them in the Commands section of this file
 
 ---
 
-*Last updated: prompt 03.6 (repo hygiene — tracked architecture diagrams, prompt archives, build plan).*
-*Next prompt: 04 — orchestrator spec (will extend this file with an "Orchestrator" section).*
+*Last updated: prompt 04 (deterministic orchestrator — state machine, agent Protocols, mock agents, audit writer, HITL queue, engine, CLI, 187 tests).*
+*Next prompt: 05 — SignalScribe agent (gates 1, 2, 3).*
