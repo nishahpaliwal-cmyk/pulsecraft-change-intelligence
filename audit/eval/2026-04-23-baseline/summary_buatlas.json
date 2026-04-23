@@ -1,0 +1,151 @@
+{
+  "agent": "buatlas",
+  "timestamp": "2026-04-23T17:12:29+00:00Z",
+  "commit": "701fc82",
+  "model": "claude-sonnet-4-6",
+  "runs_per_fixture": 3,
+  "fixtures": [
+    {
+      "fixture": "change_001_clearcut_communicate.json",
+      "bu_id": "bu_alpha",
+      "verb_distribution": {
+        "affected": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1957,
+      "elapsed_s": 105.6,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "affected",
+          "secondary_verb": "worth_sending",
+          "confidence": 0.91,
+          "elapsed_s": 36.3,
+          "cost_usd": 0.0656,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "affected",
+          "secondary_verb": "worth_sending",
+          "confidence": 0.91,
+          "elapsed_s": 35.3,
+          "cost_usd": 0.0648,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "affected",
+          "secondary_verb": "worth_sending",
+          "confidence": 0.91,
+          "elapsed_s": 34.1,
+          "cost_usd": 0.0653,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "affected"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [],
+      "notes": "bu_alpha owns specialty_pharmacy + hcp_portal_ordering \u2014 directly in the PA form change. AFFECTED is the only correct verdict."
+    },
+    {
+      "fixture": "change_006_multi_bu_affected_vs_adjacent.json",
+      "bu_id": "bu_zeta",
+      "verb_distribution": {},
+      "classification": "mismatch",
+      "skipped": true,
+      "skip_reason": "bu_zeta not in candidate set (SignalScribe impact_areas=['analytics_portal_reporting_dashboard', 'data_export_workflow', 'dashboard_filtering_ui', 'clinical_operations_enrollment_summary_report']). See expectations.py note for this fixture.",
+      "cost_usd": 0.0,
+      "elapsed_s": 0.0,
+      "runs": [],
+      "expected_terminal_verbs": [
+        "affected"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [],
+      "notes": "bu_zeta owns analytics_portal + reporting_dashboard \u2014 directly in scope. Dryrun 2026-04-23 confirmed AFFECTED."
+    },
+    {
+      "fixture": "change_006_multi_bu_affected_vs_adjacent.json",
+      "bu_id": "bu_delta",
+      "verb_distribution": {},
+      "classification": "mismatch",
+      "skipped": true,
+      "skip_reason": "bu_delta not in candidate set (SignalScribe impact_areas=['analytics_portal', 'reporting_dashboard', 'data_export', 'clinical_operations_enrollment_reporting']). See expectations.py note for this fixture.",
+      "cost_usd": 0.0,
+      "elapsed_s": 0.0,
+      "runs": [],
+      "expected_terminal_verbs": [
+        "adjacent"
+      ],
+      "acceptable_alternate_verbs": [
+        "not_affected"
+      ],
+      "false_positive_verbs": [
+        "affected"
+      ],
+      "notes": "bu_delta owns clinical_trial_operations + reporting (generic). Analytics Portal changes may touch reporting adjacently but not core delta BU scope. ADJACENT expected; AFFECTED would be a false positive (unwanted notification). WARNING: bu_delta may not appear in the candidate set if SignalScribe uses specific impact area terms \u2014 the runner will skip if bu_delta is not a candidate."
+    },
+    {
+      "fixture": "change_007_mlr_sensitive.json",
+      "bu_id": "bu_gamma",
+      "verb_distribution": {
+        "affected": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1992,
+      "elapsed_s": 724.7,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "affected",
+          "secondary_verb": "worth_sending",
+          "confidence": 0.81,
+          "elapsed_s": 643.2,
+          "cost_usd": 0.0677,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "affected",
+          "secondary_verb": "worth_sending",
+          "confidence": 0.81,
+          "elapsed_s": 41.5,
+          "cost_usd": 0.0655,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "affected",
+          "secondary_verb": "worth_sending",
+          "confidence": 0.81,
+          "elapsed_s": 40.0,
+          "cost_usd": 0.066,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "affected"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [],
+      "notes": "bu_gamma owns medical_information_portal + clinical_evidence_library. HCP Educational Module update directly impacts gamma's domain. Dryrun 2026-04-23 confirmed AFFECTED."
+    }
+  ],
+  "totals": {
+    "stable": 2,
+    "acceptable_variance": 0,
+    "unstable": 0,
+    "false_positive_risk": 0,
+    "mismatch": 0
+  },
+  "skipped": 2,
+  "total_cost_usd": 0.3949,
+  "total_elapsed_s": 830.3
+}

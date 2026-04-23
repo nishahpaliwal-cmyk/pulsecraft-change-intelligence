@@ -71,6 +71,8 @@ yarn-error.log*
 # PulseCraft runtime outputs (tracked by folder, not contents)
 audit/*
 !audit/.gitkeep
+!audit/eval/
+audit/eval/*.txt
 queue/*
 !queue/.gitkeep
 

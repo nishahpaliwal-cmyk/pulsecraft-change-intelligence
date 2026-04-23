@@ -1,0 +1,418 @@
+{
+  "agent": "signalscribe",
+  "timestamp": "2026-04-23T16:55:57+00:00Z",
+  "commit": "701fc82",
+  "model": "claude-sonnet-4-6",
+  "runs_per_fixture": 3,
+  "fixtures": [
+    {
+      "fixture": "change_001_clearcut_communicate.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "READY": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.184,
+      "elapsed_s": 109.8,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.92,
+          "elapsed_s": 37.5,
+          "cost_usd": 0.062,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.91,
+          "elapsed_s": 36.7,
+          "cost_usd": 0.0616,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.91,
+          "elapsed_s": 35.6,
+          "cost_usd": 0.0604,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "READY"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [],
+      "notes": "Clear rollout signal \u2014 redesigned PA validation form visible to all HCP portal users. Should proceed through all 3 gates without early stop."
+    },
+    {
+      "fixture": "change_002_pure_internal_refactor.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "ARCHIVE": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1125,
+      "elapsed_s": 51.1,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "ARCHIVE",
+          "secondary_verb": null,
+          "confidence": 0.97,
+          "elapsed_s": 18.8,
+          "cost_usd": 0.0358,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "ARCHIVE",
+          "secondary_verb": null,
+          "confidence": 0.97,
+          "elapsed_s": 15.2,
+          "cost_usd": 0.0375,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "ARCHIVE",
+          "secondary_verb": null,
+          "confidence": 0.97,
+          "elapsed_s": 17.0,
+          "cost_usd": 0.0392,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "ARCHIVE"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [
+        "READY"
+      ],
+      "notes": "Internal message-queue client migration, no user-visible change. ARCHIVE at gate 1 is the only correct outcome. READY would mean the agent committed to communicating a purely internal refactor."
+    },
+    {
+      "fixture": "change_003_ambiguous_escalate.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "ARCHIVE": 2,
+        "ESCALATE": 1
+      },
+      "classification": "acceptable_variance",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.0993,
+      "elapsed_s": 44.3,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "ARCHIVE",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 16.7,
+          "cost_usd": 0.0322,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "ARCHIVE",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 12.2,
+          "cost_usd": 0.0317,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "ESCALATE",
+          "secondary_verb": null,
+          "confidence": 0.32,
+          "elapsed_s": 15.4,
+          "cost_usd": 0.0354,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "ESCALATE"
+      ],
+      "acceptable_alternate_verbs": [
+        "ARCHIVE",
+        "HOLD_INDEFINITE",
+        "NEED_CLARIFICATION",
+        "UNRESOLVABLE"
+      ],
+      "false_positive_verbs": [
+        "READY"
+      ],
+      "notes": "Designed-ambiguous: 'Portal Release \u2014 Sprint 47 Improvements' with vague language. Design intent is ESCALATE (ask a human). Dryrun 2026-04-23 shows ARCHIVE 2/2 times. ARCHIVE is defensible (too vague to act on) but differs from design intent. All uncertainty signals acceptable; READY would mean the agent committed to communicating a deliberately vague artifact."
+    },
+    {
+      "fixture": "change_004_early_flag_hold_until.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "HOLD_UNTIL": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1406,
+      "elapsed_s": 77.0,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "HOLD_UNTIL",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 29.3,
+          "cost_usd": 0.0468,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "HOLD_UNTIL",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 24.4,
+          "cost_usd": 0.0465,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "HOLD_UNTIL",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 23.3,
+          "cost_usd": 0.0473,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "HOLD_UNTIL"
+      ],
+      "acceptable_alternate_verbs": [
+        "HOLD_INDEFINITE"
+      ],
+      "false_positive_verbs": [
+        "READY"
+      ],
+      "notes": "Feature flag enabled but not yet rolled out. HOLD_UNTIL at gate 2 is the expected verdict (hold until rollout is confirmed). HOLD_INDEFINITE is acceptable (agent chose longer-form hold). READY would mean the agent treated a not-yet-deployed feature as ready to communicate."
+    },
+    {
+      "fixture": "change_005_muddled_need_clarification.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "HOLD_INDEFINITE": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1257,
+      "elapsed_s": 75.0,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "HOLD_INDEFINITE",
+          "secondary_verb": null,
+          "confidence": 0.8,
+          "elapsed_s": 24.6,
+          "cost_usd": 0.0414,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "HOLD_INDEFINITE",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 25.1,
+          "cost_usd": 0.0423,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "HOLD_INDEFINITE",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 25.3,
+          "cost_usd": 0.042,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "HOLD_INDEFINITE",
+        "NEED_CLARIFICATION",
+        "UNRESOLVABLE"
+      ],
+      "acceptable_alternate_verbs": [
+        "ARCHIVE"
+      ],
+      "false_positive_verbs": [
+        "READY"
+      ],
+      "notes": "Muddled artifact with contradictory or incomplete signals. Any 'uncertainty' terminal verb is correct. ARCHIVE is acceptable (truly unresolvable). READY would mean the agent committed to communicating muddled content."
+    },
+    {
+      "fixture": "change_006_multi_bu_affected_vs_adjacent.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "READY": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1739,
+      "elapsed_s": 111.5,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.85,
+          "elapsed_s": 42.8,
+          "cost_usd": 0.0582,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 33.9,
+          "cost_usd": 0.0577,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.88,
+          "elapsed_s": 34.7,
+          "cost_usd": 0.058,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "READY"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [],
+      "notes": "Analytics Portal new filtering/export capabilities \u2014 clear new feature. Should proceed through all 3 gates."
+    },
+    {
+      "fixture": "change_007_mlr_sensitive.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "NEED_CLARIFICATION": 1,
+        "READY": 2
+      },
+      "classification": "unstable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1719,
+      "elapsed_s": 125.5,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "NEED_CLARIFICATION",
+          "secondary_verb": null,
+          "confidence": 0.72,
+          "elapsed_s": 45.4,
+          "cost_usd": 0.0599,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.81,
+          "elapsed_s": 39.0,
+          "cost_usd": 0.0551,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.78,
+          "elapsed_s": 41.1,
+          "cost_usd": 0.0569,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "READY"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [],
+      "notes": "HCP Educational Module update \u2014 clinical content. SignalScribe should say READY; MLR review is enforced by policy at step 5, not gate 3. Agent should NOT self-censor on MLR sensitivity."
+    },
+    {
+      "fixture": "change_008_post_hoc_already_shipped.json",
+      "bu_id": null,
+      "verb_distribution": {
+        "READY": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.1651,
+      "elapsed_s": 112.7,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.9,
+          "elapsed_s": 41.7,
+          "cost_usd": 0.0576,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.91,
+          "elapsed_s": 37.8,
+          "cost_usd": 0.0562,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "READY",
+          "secondary_verb": null,
+          "confidence": 0.91,
+          "elapsed_s": 33.2,
+          "cost_usd": 0.0513,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "READY"
+      ],
+      "acceptable_alternate_verbs": [
+        "ARCHIVE"
+      ],
+      "false_positive_verbs": [],
+      "notes": "Post-hoc already-shipped change (notification wording standardization). READY is expected (retroactive communication still valuable). ARCHIVE is acceptable (agent may recognize it as already complete). No false-positive risk \u2014 READY on a shipped change is not harmful."
+    }
+  ],
+  "totals": {
+    "stable": 6,
+    "acceptable_variance": 1,
+    "unstable": 1,
+    "false_positive_risk": 0,
+    "mismatch": 0
+  },
+  "skipped": 0,
+  "total_cost_usd": 1.173,
+  "total_elapsed_s": 707.0
+}

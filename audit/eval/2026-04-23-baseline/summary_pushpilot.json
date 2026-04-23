@@ -1,0 +1,139 @@
+{
+  "agent": "pushpilot",
+  "timestamp": "2026-04-23T17:17:07+00:00Z",
+  "commit": "701fc82",
+  "model": "claude-sonnet-4-6",
+  "runs_per_fixture": 3,
+  "fixtures": [
+    {
+      "fixture": "change_001_clearcut_communicate.json",
+      "bu_id": "bu_alpha",
+      "verb_distribution": {
+        "send_now": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.0859,
+      "elapsed_s": 34.7,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "send_now",
+          "secondary_verb": null,
+          "confidence": 0.96,
+          "elapsed_s": 10.4,
+          "cost_usd": 0.028,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "send_now",
+          "secondary_verb": null,
+          "confidence": 0.95,
+          "elapsed_s": 11.7,
+          "cost_usd": 0.0287,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "send_now",
+          "secondary_verb": null,
+          "confidence": 0.95,
+          "elapsed_s": 12.5,
+          "cost_usd": 0.0292,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "hold_until",
+        "send_now"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [
+        "digest"
+      ],
+      "notes": "bu_alpha P0 priority change during business hours. SEND_NOW is the ideal outcome; HOLD_UNTIL acceptable if agent sees timing risk. DIGEST is wrong \u2014 batching a P0 notification misrepresents urgency."
+    },
+    {
+      "fixture": "change_006_multi_bu_affected_vs_adjacent.json",
+      "bu_id": "bu_zeta",
+      "verb_distribution": {},
+      "classification": "mismatch",
+      "skipped": true,
+      "skip_reason": "bu_zeta not in candidate set (SignalScribe impact_areas=['analytics_portal_reporting_dashboard', 'data_export_workflow', 'clinical_operations_enrollment_summary_report_ui']).",
+      "cost_usd": 0.0,
+      "elapsed_s": 0.0,
+      "runs": [],
+      "expected_terminal_verbs": [
+        "hold_until",
+        "send_now"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [
+        "digest"
+      ],
+      "notes": "bu_zeta analytics change \u2014 SEND_NOW or HOLD_UNTIL expected. bu_zeta's profile will determine whether digest is acceptable channel; since this is a high-priority feature update, DIGEST is a false positive risk."
+    },
+    {
+      "fixture": "change_007_mlr_sensitive.json",
+      "bu_id": "bu_gamma",
+      "verb_distribution": {
+        "send_now": 3
+      },
+      "classification": "stable",
+      "skipped": false,
+      "skip_reason": null,
+      "cost_usd": 0.087,
+      "elapsed_s": 42.5,
+      "runs": [
+        {
+          "run_index": 1,
+          "terminal_verb": "send_now",
+          "secondary_verb": null,
+          "confidence": 0.97,
+          "elapsed_s": 17.8,
+          "cost_usd": 0.03,
+          "error": null
+        },
+        {
+          "run_index": 2,
+          "terminal_verb": "send_now",
+          "secondary_verb": null,
+          "confidence": 0.97,
+          "elapsed_s": 11.7,
+          "cost_usd": 0.0284,
+          "error": null
+        },
+        {
+          "run_index": 3,
+          "terminal_verb": "send_now",
+          "secondary_verb": null,
+          "confidence": 0.95,
+          "elapsed_s": 13.0,
+          "cost_usd": 0.0286,
+          "error": null
+        }
+      ],
+      "expected_terminal_verbs": [
+        "hold_until",
+        "send_now"
+      ],
+      "acceptable_alternate_verbs": [],
+      "false_positive_verbs": [
+        "digest"
+      ],
+      "notes": "bu_gamma MLR-sensitive change. PushPilot should recommend send_now or hold_until. MLR restriction is enforced by policy (HITL trigger), not by PushPilot's gate-6 decision. DIGEST would be wrong \u2014 MLR review requires explicit approval, not batching."
+    }
+  ],
+  "totals": {
+    "stable": 2,
+    "acceptable_variance": 0,
+    "unstable": 0,
+    "false_positive_risk": 0,
+    "mismatch": 0
+  },
+  "skipped": 1,
+  "total_cost_usd": 0.1729,
+  "total_elapsed_s": 77.3
+}
