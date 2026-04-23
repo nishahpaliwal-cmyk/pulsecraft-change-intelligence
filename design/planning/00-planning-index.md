@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 11.5 (explain scoping fix — /explain scoped to latest run by default; detect_runs run-boundary detection; --run/--all/--list-runs flags; usd_estimate wired from agents through audit to /explain totals; 557 tests passing).
+**Last completed:** Prompt 12 (guardrail hooks — pre_ingest, post_agent, pre_deliver, audit_hook; HookContext/HookResult; config loader from .claude/settings.json; 5 engine lifecycle call sites; 43 new tests; 600 tests passing).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 11.5. Prompt 12 (guardrail hooks) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 12. Prompt 13 (first end-to-end dryrun) is next.
 
 ---
 
@@ -27,7 +27,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | **P5 — Config + fixtures** | BU registry, profiles, policy, synthetic change fixtures | ✅ Done (completed ahead of schedule in prompt 03) |
 | **P6 — Skills** | Skill definitions and implementations | ⏳ Prompts 08–10 |
 | **P7 — Commands** | Slash command prompts | ✅ Done (prompt 11) |
-| **P8 — Hooks** | Hook definitions + policy enforcement | ⏳ Prompt 12 |
+| **P8 — Hooks** | Hook definitions + policy enforcement | ✅ Done (prompt 12) |
 | **P9 — Dryrun + Evals** | First end-to-end dryrun, eval harness | ⏳ Prompts 13–14 |
 
 ---
@@ -196,7 +196,7 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 09 | `prompts/09-skills-registry-policy.md` | Registry, policy, audit skills — extracted from engine.py | ✅ Done |
 | 10 | `prompts/10-skills-delivery.md` | Delivery rendering skills | ✅ Done |
 | 11 | `prompts/11-commands.md` | Operator slash commands | ✅ Done |
-| 12 | `prompts/12-hooks.md` | Guardrail hooks in settings.json | ⏳ |
+| 12 | `prompts/12-hooks.md` | Guardrail hooks in settings.json | ✅ Done |
 | 13 | `prompts/13-dryrun-walkthrough.md` | First end-to-end dryrun | ⏳ |
 | 14 | `prompts/14-eval-harness.md` | Fixture-based evals | ⏳ |
 

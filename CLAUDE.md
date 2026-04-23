@@ -36,9 +36,9 @@
 - ✅ 10 — Skills: delivery rendering (render + send + schedule, 4 renderers, 3 send adapters, 1 scheduler, dedupe audit fix, 495 tests)
 - ✅ 11 — Operator slash commands (11 subcommands incl. /explain decision trail, CLI refactor, explain_chain skill, 545 tests)
 - ✅ 11.5 — Explain scoping fix: /explain scoped to latest run by default, run-boundary detection, --run/--all/--list-runs flags, cost wired to audit records, 557 tests
+- ✅ 12 — Guardrail hooks: pre_ingest, post_agent, pre_deliver, audit_hook; HookContext/HookResult base types; config loader; 5 engine lifecycle call sites; 43 new tests (600 total)
 
 **Prompts remaining:**
-- ⏳ 12 — Guardrail hooks
 - ⏳ 13 — First end-to-end dryrun
 - ⏳ 14 — Eval harness
 
@@ -225,9 +225,25 @@ CLI root: `src/pulsecraft/cli/` — refactored into `commands/` with one module 
 
 ## Hooks configured so far
 
-<!-- Populated as prompt 12 lands. -->
+### Guardrail hooks (prompt 12)
+Location: `src/pulsecraft/hooks/`
 
-*(none yet — populated in prompt 12)*
+| Hook | Module | Fail mode | Stage | Purpose |
+|---|---|---|---|---|
+| `pre_ingest` | `pulsecraft.hooks.pre_ingest` | closed | Before SignalScribe | Redact PII/credentials in raw_text; fail if not a string |
+| `post_agent` | `pulsecraft.hooks.post_agent` | closed | After each agent | Check confidence thresholds (positive verbs only) + restricted terms in message_text |
+| `pre_deliver` | `pulsecraft.hooks.pre_deliver` | closed | Before each delivery | Enforce quiet hours + channel approval |
+| `audit` | `pulsecraft.hooks.audit_hook` | open | Written by engine via `_write_hook_fired` | HOOK_FIRED AuditRecord per hook invocation; fail-open always |
+
+**Key design decisions:**
+- `fail="closed"` + hook failure → pipeline transitions via `"error"` event → FAILED
+- Confidence check in `post_agent` skips ESCALATE/NEED_CLARIFICATION/UNRESOLVABLE/ARCHIVE — intentional routing decisions, not policy violations
+- BUAtlas post_agent receives `message_text=""` — MLR/restricted-term detection in drafts is owned by HITL trigger evaluation (step 5), not the hook
+- Hook modules are lazy-loaded and cached in `_hook_modules` on the Orchestrator
+- `audit_hook.py` exists as a standalone module but `_write_hook_fired` writes records directly to avoid recursion
+- `pre_deliver.py` replicates quiet-hours logic locally to avoid circular imports with `engine.py`
+
+Registrations live in `.claude/settings.json`.
 
 ## Orchestrator
 
@@ -325,5 +341,5 @@ Uses default mock agents. Prints Rich tables: state-transition audit chain, BU r
 
 ---
 
-*Last updated: prompt 11.5 (explain scoping fix — /explain scoped to latest run by default; detect_runs; --run/--all/--list-runs flags; usd_estimate wired through agents → audit → totals; 557 tests passing).*
-*Next prompt: 12 — Guardrail hooks.*
+*Last updated: prompt 12 (guardrail hooks — pre_ingest, post_agent, pre_deliver, audit_hook; HookContext/HookResult; config loader; 5 engine lifecycle call sites; 43 new tests; 600 tests passing).*
+*Next prompt: 13 — First end-to-end dryrun.*

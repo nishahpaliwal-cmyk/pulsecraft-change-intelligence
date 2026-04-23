@@ -23,6 +23,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import structlog
 
 from pulsecraft.config.loader import get_bu_profile, get_bu_registry, get_channel_policy, get_policy
+from pulsecraft.hooks.base import HookContext, HookResult
+from pulsecraft.hooks.config import HookRegistration, load_hook_registrations
 from pulsecraft.orchestrator.agent_protocol import (
     BUAtlasProtocol,
     PushPilotProtocol,
@@ -123,6 +125,8 @@ class Orchestrator:
         self._audit = audit_writer
         self._hitl = hitl_queue
         self._buatlas_fanout_fn = buatlas_fanout_fn
+        self._hooks: dict[str, HookRegistration] = load_hook_registrations()
+        self._hook_modules: dict[str, object] = {}
 
     # ── audit helpers ─────────────────────────────────────────────────────
 
@@ -213,6 +217,26 @@ class Orchestrator:
         )
         self._audit.log_event(record)
 
+    def _write_hook_fired(
+        self,
+        change_id: str,
+        hook_name: str,
+        outcome: str,
+        reason: str,
+    ) -> None:
+        record = AuditRecord(
+            audit_id=str(uuid.uuid4()),
+            timestamp=_utcnow(),
+            event_type=EventType.HOOK_FIRED,
+            change_id=change_id,
+            actor=Actor(type=ActorType.HOOK, id=hook_name, version=None),
+            action=hook_name,
+            input_hash=_sha256({"hook": hook_name}),
+            output_summary=f"{outcome.upper()}: {reason}"[:500],
+            outcome=AuditOutcome.SUCCESS if outcome == "pass" else AuditOutcome.FAILURE,
+        )
+        self._audit.log_event(record)
+
     def _write_delivery(
         self,
         change_id: str,
@@ -237,6 +261,33 @@ class Orchestrator:
             dedupe_key=dedupe_key,
         )
         self._audit.log_event(record)
+
+    def _invoke_hook(self, hook_name: str, ctx: HookContext) -> HookResult:
+        """Invoke a registered hook by name. Write HOOK_FIRED record. Return result."""
+        import importlib
+
+        reg = self._hooks.get(hook_name)
+        if reg is None or not reg.enabled:
+            return HookResult.skipped(f"hook {hook_name!r} not registered or disabled")
+
+        try:
+            if hook_name not in self._hook_modules:
+                self._hook_modules[hook_name] = importlib.import_module(reg.module)
+            mod = self._hook_modules[hook_name]
+            fn = getattr(mod, reg.entrypoint)
+            hook_result: HookResult = fn(ctx)  # type: ignore[assignment]
+        except Exception as exc:
+            err_reason = f"hook raised: {str(exc)[:200]}"
+            logger.error("hook_invoke_error", hook_name=hook_name, error=str(exc)[:200])
+            if ctx.change_id:
+                self._write_hook_fired(ctx.change_id, hook_name, "fail", err_reason)
+            if reg.fail == "closed":
+                return HookResult.failed(err_reason)
+            return HookResult.passed(reason=f"hook {hook_name!r} errored (fail=open)")
+
+        if ctx.change_id:
+            self._write_hook_fired(ctx.change_id, hook_name, hook_result.outcome, hook_result.reason)
+        return hook_result
 
     # ── decision interpretation ───────────────────────────────────────────
 
@@ -694,6 +745,24 @@ class Orchestrator:
         self._write_transition(change_id, None, WorkflowState.RECEIVED, "artifact accepted")
 
         # ── Step 2: SignalScribe ──────────────────────────────────────────
+        _pi_ctx = HookContext(
+            stage="pre_ingest", change_id=change_id, payload={"raw_text": artifact.raw_text}
+        )
+        _pi_result = self._invoke_hook("pre_ingest", _pi_ctx)
+        if _pi_result.outcome == "fail":
+            _pi_reg = self._hooks.get("pre_ingest")
+            if _pi_reg and _pi_reg.fail == "closed":
+                state = self._transition(
+                    change_id, state, "error", f"pre_ingest blocked: {_pi_result.reason}"
+                )
+                result.terminal_state = state
+                result.errors.append(_pi_result.reason)
+                result.audit_record_count = self._audit.record_count(change_id)
+                return result
+        elif _pi_result.outcome == "pass":
+            _redacted = _pi_result.details.get("redacted_text")
+            if isinstance(_redacted, str):
+                artifact.raw_text = _redacted
         change_brief = self._signalscribe.invoke(artifact)
         result.change_brief = change_brief
 
@@ -713,6 +782,27 @@ class Orchestrator:
             if change_brief.usd_estimate
             else None,
         )
+        _pa_ss_ctx = HookContext(
+            stage="post_agent",
+            change_id=change_id,
+            payload={
+                "agent_name": self._signalscribe.agent_name,
+                "decisions": change_brief.decisions,
+                "message_text": "",
+                "policy": policy,
+            },
+        )
+        _pa_ss_result = self._invoke_hook("post_agent", _pa_ss_ctx)
+        if _pa_ss_result.outcome == "fail":
+            _pa_ss_reg = self._hooks.get("post_agent")
+            if _pa_ss_reg and _pa_ss_reg.fail == "closed":
+                state = self._transition(
+                    change_id, state, "error", f"post_agent blocked: {_pa_ss_result.reason}"
+                )
+                result.terminal_state = state
+                result.errors.append(_pa_ss_result.reason)
+                result.audit_record_count = self._audit.record_count(change_id)
+                return result
 
         # State machine event from SignalScribe decisions — explicit agent decisions
         # (ESCALATE, NEED_CLARIFICATION, UNRESOLVABLE, HOLD_UNTIL, ARCHIVE) take
@@ -833,6 +923,30 @@ class Orchestrator:
                     ),
                     metrics=AuditMetrics(cost_usd=pb.usd_estimate) if pb.usd_estimate else None,
                 )
+                _pa_ba_ctx = HookContext(
+                    stage="post_agent",
+                    change_id=change_id,
+                    payload={
+                        "agent_name": self._buatlas.agent_name,
+                        "decisions": pb.decisions,
+                        "message_text": "",
+                        "policy": policy,
+                    },
+                )
+                _pa_ba_result = self._invoke_hook("post_agent", _pa_ba_ctx)
+                if _pa_ba_result.outcome == "fail":
+                    _pa_ba_reg = self._hooks.get("post_agent")
+                    if _pa_ba_reg and _pa_ba_reg.fail == "closed":
+                        state = self._transition(
+                            change_id,
+                            state,
+                            "error",
+                            f"post_agent blocked for {bu_id}: {_pa_ba_result.reason}",
+                        )
+                        result.terminal_state = state
+                        result.errors.append(_pa_ba_result.reason)
+                        result.audit_record_count = self._audit.record_count(change_id)
+                        return result
                 for d in pb.decisions:
                     if d.verb == DecisionVerb.ESCALATE:
                         buatlas_hitl_triggered = True
@@ -862,6 +976,30 @@ class Orchestrator:
                     ),
                     metrics=AuditMetrics(cost_usd=pb.usd_estimate) if pb.usd_estimate else None,
                 )
+                _pa_ba_ctx = HookContext(
+                    stage="post_agent",
+                    change_id=change_id,
+                    payload={
+                        "agent_name": self._buatlas.agent_name,
+                        "decisions": pb.decisions,
+                        "message_text": "",
+                        "policy": policy,
+                    },
+                )
+                _pa_ba_result = self._invoke_hook("post_agent", _pa_ba_ctx)
+                if _pa_ba_result.outcome == "fail":
+                    _pa_ba_reg = self._hooks.get("post_agent")
+                    if _pa_ba_reg and _pa_ba_reg.fail == "closed":
+                        state = self._transition(
+                            change_id,
+                            state,
+                            "error",
+                            f"post_agent blocked for {bu_id}: {_pa_ba_result.reason}",
+                        )
+                        result.terminal_state = state
+                        result.errors.append(_pa_ba_result.reason)
+                        result.audit_record_count = self._audit.record_count(change_id)
+                        return result
                 for d in pb.decisions:
                     if d.verb == DecisionVerb.ESCALATE:
                         buatlas_hitl_triggered = True
@@ -967,6 +1105,30 @@ class Orchestrator:
                 if raw_output.usd_estimate
                 else None,
             )
+            _pa_pp_ctx = HookContext(
+                stage="post_agent",
+                change_id=change_id,
+                payload={
+                    "agent_name": self._pushpilot.agent_name,
+                    "decisions": [raw_output.gate_decision],
+                    "message_text": "",
+                    "policy": policy,
+                },
+            )
+            _pa_pp_result = self._invoke_hook("post_agent", _pa_pp_ctx)
+            if _pa_pp_result.outcome == "fail":
+                _pa_pp_reg = self._hooks.get("post_agent")
+                if _pa_pp_reg and _pa_pp_reg.fail == "closed":
+                    state = self._transition(
+                        change_id,
+                        state,
+                        "error",
+                        f"post_agent blocked for {bu_id}: {_pa_pp_result.reason}",
+                    )
+                    result.terminal_state = state
+                    result.errors.append(_pa_pp_result.reason)
+                    result.audit_record_count = self._audit.record_count(change_id)
+                    return result
 
             # Apply code-level policy invariants (quiet hours, channel approval, confidence)
             output = self._enforce_pushpilot_policy(
@@ -1002,6 +1164,33 @@ class Orchestrator:
         for bu_id, output in delivery_outputs.items():
             pb = worth_sending[bu_id]
             bu_profile = get_bu_profile(bu_id)
+            try:
+                _cp = get_channel_policy()
+            except Exception:
+                _cp = None
+            _pd_ctx = HookContext(
+                stage="pre_deliver",
+                change_id=change_id,
+                payload={
+                    "channel": str(output.channel) if output.channel else "unspecified",
+                    "bu_profile": bu_profile,
+                    "channel_policy": _cp,
+                },
+            )
+            _pd_result = self._invoke_hook("pre_deliver", _pd_ctx)
+            if _pd_result.outcome == "fail":
+                _pd_reg = self._hooks.get("pre_deliver")
+                if _pd_reg and _pd_reg.fail == "closed":
+                    state = self._transition(
+                        change_id,
+                        state,
+                        "error",
+                        f"pre_deliver blocked for {bu_id}: {_pd_result.reason}",
+                    )
+                    result.terminal_state = state
+                    result.errors.append(_pd_result.reason)
+                    result.audit_record_count = self._audit.record_count(change_id)
+                    return result
             _decision_str, is_dedupe_conflict = self._execute_delivery(
                 change_id, bu_id, output, pb, bu_profile
             )

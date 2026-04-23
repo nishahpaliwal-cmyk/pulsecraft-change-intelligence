@@ -1,7 +1,28 @@
 {
   "hooks": {
-    "PreToolUse": [],
-    "PostToolUse": []
-  },
-  "description": "PulseCraft — hooks will be populated in prompt 12."
+    "pre_ingest": {
+      "module": "pulsecraft.hooks.pre_ingest",
+      "entrypoint": "run",
+      "fail": "closed",
+      "enabled": true
+    },
+    "post_agent": {
+      "module": "pulsecraft.hooks.post_agent",
+      "entrypoint": "run",
+      "fail": "closed",
+      "enabled": true
+    },
+    "pre_deliver": {
+      "module": "pulsecraft.hooks.pre_deliver",
+      "entrypoint": "run",
+      "fail": "closed",
+      "enabled": true
+    },
+    "audit": {
+      "module": "pulsecraft.hooks.audit_hook",
+      "entrypoint": "run",
+      "fail": "open",
+      "enabled": true
+    }
+  }
 }
