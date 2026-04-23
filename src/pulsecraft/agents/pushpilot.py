@@ -188,6 +188,7 @@ class PushPilot:
         )
 
         assert output is not None
+        output.usd_estimate = round(cost, 4)
         return output
 
     @retry(

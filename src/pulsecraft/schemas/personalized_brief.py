@@ -132,3 +132,8 @@ class PersonalizedBrief(BaseModel):
         ge=0,
         description="Times BUAtlas regenerated the message after a WEAK self-assessment.",
     )
+    usd_estimate: float | None = Field(
+        default=None,
+        exclude=True,
+        description="LLM cost estimate in USD. Internal orchestration field; not from LLM output.",
+    )

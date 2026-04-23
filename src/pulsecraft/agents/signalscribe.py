@@ -147,6 +147,7 @@ class SignalScribe:
         )
 
         assert brief is not None
+        brief.usd_estimate = round(cost, 4)
         return brief
 
     @retry(

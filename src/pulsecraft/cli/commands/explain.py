@@ -50,6 +50,8 @@ _VERB_COLORS = {
     "ESCALATE": "red",
 }
 
+JOURNEY_TRUNCATE = 12
+
 
 def register(app: typer.Typer) -> None:
     @app.command("explain")
@@ -75,23 +77,65 @@ def register(app: typer.Typer) -> None:
             "--no-draft",
             help="Skip delivery/HITL action blocks (briefer output).",
         ),
+        run_selector: int = typer.Option(  # noqa: B008
+            -1,
+            "--run",
+            "-r",
+            help="Run index. -1=latest (default), 1=earliest, 2=second, etc.",
+        ),
+        show_all: bool = typer.Option(  # noqa: B008
+            False,
+            "--all",
+            "-a",
+            help="Show all runs combined (full chain view).",
+        ),
+        list_runs: bool = typer.Option(  # noqa: B008
+            False,
+            "--list-runs",
+            help="List all pipeline runs without full explanation.",
+        ),
     ) -> None:
         """Human-readable decision trail for a change_id.
 
         Narrates every agent gate, policy override, HITL event, and delivery
         outcome that the change experienced. The demo-day observability command.
 
+        By default shows only the most recent pipeline run. Use --all to see
+        all runs combined, or --run N to select a specific run.
+
         Examples:
           pulsecraft explain a1b2c3d4
           pulsecraft explain a1b2c3d4 --json
           pulsecraft explain a1b2c3d4 --verbose
+          pulsecraft explain a1b2c3d4 --list-runs
+          pulsecraft explain a1b2c3d4 --run 1
+          pulsecraft explain a1b2c3d4 --all
         """
         from pulsecraft.cli.common import load_audit_writer
-        from pulsecraft.skills.explain_chain import build_explanation
+        from pulsecraft.skills.explain_chain import RunNotFound, build_explanation, detect_runs
 
         full_id = resolve_change_id(change_id, audit_dir)
         audit_writer = load_audit_writer(audit_dir)
-        exp = build_explanation(full_id, audit_writer)
+
+        # --list-runs: show run table and exit
+        if list_runs:
+            all_records = audit_writer.read_chain(full_id)
+            if not all_records:
+                err_console.print(f"[red]No audit records found for:[/red] {full_id}")
+                raise typer.Exit(code=2)
+            runs = detect_runs(all_records)
+            _render_run_list(full_id, runs, all_records)
+            return
+
+        from typing import Literal
+
+        run_sel: int | Literal["all"] = "all" if show_all else run_selector
+
+        try:
+            exp = build_explanation(full_id, audit_writer, run_selector=run_sel)
+        except RunNotFound as exc:
+            err_console.print(f"[red]Run not found:[/red] {exc}")
+            raise typer.Exit(code=2) from exc
 
         if not exp.state_transitions and not exp.agent_decisions:
             err_console.print(f"[red]No audit records found for:[/red] {full_id}")
@@ -103,13 +147,58 @@ def register(app: typer.Typer) -> None:
             print_json_output(exp)
             return
 
-        _render_explain(exp, verbose=verbose, no_draft=no_draft, queue_dir=queue_dir)
+        _render_explain(
+            exp,
+            verbose=verbose,
+            no_draft=no_draft,
+            queue_dir=queue_dir,
+            show_all=show_all,
+            run_selector=run_selector,
+        )
 
 
 # ── rendering ─────────────────────────────────────────────────────────────────
 
 
-def _render_explain(exp, *, verbose: bool, no_draft: bool, queue_dir: Path) -> None:
+def _render_run_list(change_id: str, runs, all_records) -> None:
+    """Print a table of all detected pipeline runs."""
+    from rich.table import Table
+
+    short_id = change_id[:8]
+    table = Table(title=f"Pipeline runs for {short_id}…", show_header=True)
+    table.add_column("#", style="bold", width=4)
+    table.add_column("Started (UTC)", width=18)
+    table.add_column("Duration", width=10)
+    table.add_column("Terminal", width=16)
+    table.add_column("Records", width=9)
+
+    for run in runs:
+        duration = run.end_timestamp - run.start_timestamp
+        dur_str = f"{duration.total_seconds():.1f}s"
+        terminal = run.terminal_state or "—"
+        terminal_color = _terminal_color(terminal) if run.terminal_state else "dim"
+        record_count = run.end_idx - run.start_idx + 1
+        table.add_row(
+            str(run.run_index),
+            run.start_timestamp.strftime("%H:%M:%S"),
+            dur_str,
+            f"[{terminal_color}]{terminal}[/{terminal_color}]",
+            str(record_count),
+        )
+
+    console.print(table)
+    console.print(f"\n[dim]Total: {len(runs)} run(s) · {len(all_records)} audit records[/dim]\n")
+
+
+def _render_explain(
+    exp,
+    *,
+    verbose: bool,
+    no_draft: bool,
+    queue_dir: Path,
+    show_all: bool = False,
+    run_selector: int = -1,
+) -> None:
     short_id = exp.change_id[:8]
     terminal = exp.terminal_state or "unknown"
 
@@ -129,6 +218,16 @@ def _render_explain(exp, *, verbose: bool, no_draft: bool, queue_dir: Path) -> N
     terminal_color = _terminal_color(terminal)
     header_lines.append(f"[bold]Status:[/bold]  [{terminal_color}]{terminal}[/{terminal_color}]")
 
+    # Run context line
+    if not show_all and exp.run_count > 0:
+        if run_selector == -1:
+            run_line = f"[bold]Run:[/bold]     latest (run {exp.run_index} of {exp.run_count})"
+        else:
+            run_line = f"[bold]Run:[/bold]     {exp.run_index} of {exp.run_count}"
+        header_lines.append(run_line)
+    elif show_all and exp.run_count > 1:
+        header_lines.append(f"[bold]Run:[/bold]     all ({exp.run_count} runs combined)")
+
     console.print(
         Panel(
             "\n".join(header_lines),
@@ -142,8 +241,16 @@ def _render_explain(exp, *, verbose: bool, no_draft: bool, queue_dir: Path) -> N
         for t in exp.state_transitions:
             if t.from_state is None or not states or states[-1] != t.to_state:
                 states.append(t.to_state)
-        journey = " → ".join(states)
-        console.print(f"\n  [dim]Journey:[/dim]  {journey}\n")
+
+        n = len(states)
+        if n <= JOURNEY_TRUNCATE:
+            journey = " → ".join(states)
+            console.print(f"\n  [dim]Journey ({n} steps):[/dim]  {journey}\n")
+        else:
+            # Show first 5 + … + last 2
+            head = " → ".join(states[:5])
+            tail = " → ".join(states[-2:])
+            console.print(f"\n  [dim]Journey ({n} steps):[/dim]  {head} … {tail}\n")
 
     # ── Pipeline trace ────────────────────────────────────────────────────
     console.print("  [bold]Pipeline trace[/bold]\n")

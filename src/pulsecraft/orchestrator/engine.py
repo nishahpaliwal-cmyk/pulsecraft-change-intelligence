@@ -709,6 +709,9 @@ class Orchestrator:
             decisions=audit_decisions,
             output_summary=f"brief_id={change_brief.brief_id} decisions={[str(d.verb) for d in change_brief.decisions]}",
             correlation_ids=CorrelationIds(brief_id=change_brief.brief_id),
+            metrics=AuditMetrics(cost_usd=change_brief.usd_estimate)
+            if change_brief.usd_estimate
+            else None,
         )
 
         # State machine event from SignalScribe decisions — explicit agent decisions
@@ -828,6 +831,7 @@ class Orchestrator:
                         brief_id=change_brief.brief_id,
                         personalized_brief_id=pb.personalized_brief_id,
                     ),
+                    metrics=AuditMetrics(cost_usd=pb.usd_estimate) if pb.usd_estimate else None,
                 )
                 for d in pb.decisions:
                     if d.verb == DecisionVerb.ESCALATE:
@@ -856,6 +860,7 @@ class Orchestrator:
                         brief_id=change_brief.brief_id,
                         personalized_brief_id=pb.personalized_brief_id,
                     ),
+                    metrics=AuditMetrics(cost_usd=pb.usd_estimate) if pb.usd_estimate else None,
                 )
                 for d in pb.decisions:
                     if d.verb == DecisionVerb.ESCALATE:
@@ -958,6 +963,9 @@ class Orchestrator:
                 decisions=[pp_decision_audit],
                 output_summary=f"bu={bu_id} decision={raw_output.decision} channel={raw_output.channel}",
                 correlation_ids=correlation,
+                metrics=AuditMetrics(cost_usd=raw_output.usd_estimate)
+                if raw_output.usd_estimate
+                else None,
             )
 
             # Apply code-level policy invariants (quiet hours, channel approval, confidence)

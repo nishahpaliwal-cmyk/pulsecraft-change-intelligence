@@ -125,3 +125,8 @@ class ChangeBrief(BaseModel):
         default=None,
         description="Reason for escalation. Populated when any gate returns ESCALATE.",
     )
+    usd_estimate: float | None = Field(
+        default=None,
+        exclude=True,
+        description="LLM cost estimate in USD. Internal orchestration field; not from LLM output.",
+    )

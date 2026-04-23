@@ -5,9 +5,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Literal
 
 from pulsecraft.orchestrator.audit import AuditReader
 from pulsecraft.schemas.audit_record import AuditDecision, AuditRecord, EventType
+
+_TERMINAL_STATES = frozenset(
+    {"DELIVERED", "ARCHIVED", "HELD", "AWAITING_HITL", "DIGESTED", "REJECTED", "FAILED"}
+)
 
 
 @dataclass
@@ -69,13 +74,104 @@ class Explanation:
     total_latency_seconds: float = 0.0
     invocation_count: int = 0
     errors: list[str] = field(default_factory=list)
+    run_index: int | None = None  # which run (1-based), None if --all
+    run_count: int = 0  # total runs in chain
 
 
-def build_explanation(change_id: str, audit_reader: AuditReader) -> Explanation:
+@dataclass
+class RunBoundary:
+    run_index: int  # 1-based from earliest
+    start_idx: int  # index into full records list (inclusive)
+    end_idx: int  # index into full records list (inclusive)
+    start_timestamp: datetime
+    end_timestamp: datetime
+    terminal_state: str | None  # None if no terminal reached
+
+
+class RunNotFound(Exception):
+    pass
+
+
+def detect_runs(records: list[AuditRecord]) -> list[RunBoundary]:
+    """Split an append-only audit chain into logical pipeline runs.
+
+    A run starts at a STATE_TRANSITION with output_summary matching 'None -> RECEIVED'.
+    A run ends at a STATE_TRANSITION into a terminal state, or just before the next
+    'None -> RECEIVED', whichever comes first.
+    """
+    if not records:
+        return []
+
+    # Find all run-start indices (None → RECEIVED transitions)
+    run_starts: list[int] = []
+    for i, r in enumerate(records):
+        if r.event_type == EventType.STATE_TRANSITION:
+            summary = r.output_summary
+            if " → " in summary and "RECEIVED" in summary:
+                parts = summary.split(" → ", 1)
+                if parts[0].strip().lower() == "none":
+                    run_starts.append(i)
+
+    # If no RECEIVED records found, treat the whole chain as one run
+    if not run_starts:
+        run_starts = [0]
+
+    boundaries: list[RunBoundary] = []
+    for run_num, start_idx in enumerate(run_starts, 1):
+        # End of this run = just before next run start, or end of records
+        hard_end = run_starts[run_num] - 1 if run_num < len(run_starts) else len(records) - 1
+
+        # Find terminal state within this run's range
+        terminal_state: str | None = None
+        terminal_idx = hard_end
+        for i in range(start_idx, hard_end + 1):
+            r = records[i]
+            if r.event_type == EventType.STATE_TRANSITION:
+                summary = r.output_summary
+                if " → " in summary:
+                    _, rest = summary.split(" → ", 1)
+                    to_state = rest.split(":")[0].strip()
+                    if to_state in _TERMINAL_STATES:
+                        terminal_state = to_state
+                        terminal_idx = i
+                        break  # first terminal state ends the run
+
+        end_idx = min(terminal_idx, hard_end)
+        boundaries.append(
+            RunBoundary(
+                run_index=run_num,
+                start_idx=start_idx,
+                end_idx=end_idx,
+                start_timestamp=records[start_idx].timestamp,
+                end_timestamp=records[end_idx].timestamp,
+                terminal_state=terminal_state,
+            )
+        )
+
+    return boundaries
+
+
+def build_explanation(
+    change_id: str,
+    audit_reader: AuditReader,
+    *,
+    run_selector: int | Literal["all"] = -1,
+) -> Explanation:
     """Reconstruct a narrative explanation of a change's journey through the pipeline.
 
     Reads the full audit chain and classifies each record into typed events. Returns
     an Explanation dataclass ready for rendering by the explain CLI command.
+
+    Args:
+        change_id: The change UUID to explain.
+        audit_reader: Reader for the audit chain.
+        run_selector: Which run to show.
+            -1 (default): most recent run.
+            "all": full chain (all runs combined).
+            1..N: specific run by 1-based index.
+
+    Raises:
+        RunNotFound: If run_selector is out of range.
     """
     records = audit_reader.read_chain(change_id)
 
@@ -87,17 +183,45 @@ def build_explanation(change_id: str, audit_reader: AuditReader) -> Explanation:
             last_record_at=None,
         )
 
+    # Detect run boundaries for scoping + metadata
+    runs = detect_runs(records)
+    run_count = len(runs)
+
+    # Select the relevant records
+    run_index: int | None = None
+    if run_selector == "all":
+        selected = records
+    else:
+        if not runs:
+            selected = records
+        else:
+            # Convert to 0-based index
+            if isinstance(run_selector, int) and run_selector < 0:
+                idx = len(runs) + run_selector  # -1 → last, -2 → second-to-last, etc.
+            else:
+                idx = int(run_selector) - 1  # 1-based → 0-based
+            if idx < 0 or idx >= len(runs):
+                raise RunNotFound(
+                    f"Run {run_selector} not found. {len(runs)} run(s) available "
+                    f"(use 1..{len(runs)} or -1 for latest)."
+                )
+            boundary = runs[idx]
+            selected = records[boundary.start_idx : boundary.end_idx + 1]
+            run_index = boundary.run_index
+
     explanation = Explanation(
         change_id=change_id,
         terminal_state=None,
-        first_record_at=records[0].timestamp,
-        last_record_at=records[-1].timestamp,
+        first_record_at=selected[0].timestamp,
+        last_record_at=selected[-1].timestamp,
+        run_index=run_index,
+        run_count=run_count,
     )
 
     total_cost = 0.0
     invocation_count = 0
 
-    for record in records:
+    for record in selected:
         if record.event_type == EventType.STATE_TRANSITION:
             _process_state_transition(record, explanation)
         elif record.event_type == EventType.AGENT_INVOCATION:

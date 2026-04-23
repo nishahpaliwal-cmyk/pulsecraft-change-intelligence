@@ -39,3 +39,8 @@ class PushPilotOutput(BaseModel):
     gate_decision: Decision = Field(
         description="Gate 6 Decision object for audit / decision trail."
     )
+    usd_estimate: float | None = Field(
+        default=None,
+        exclude=True,
+        description="LLM cost estimate in USD. Internal orchestration field; not from LLM output.",
+    )
