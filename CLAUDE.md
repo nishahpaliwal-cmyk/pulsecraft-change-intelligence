@@ -42,6 +42,7 @@
 - ✅ 14.5 — README overhaul (publication-quality README with Mermaid architecture diagram, decision guides, eval metrics, use cases, comparison table, roadmap; 625 lines)
 - ✅ 14.6 — Enterprise identifier references removed; repo now reads as generic enterprise project
 - ✅ 15 — Demo UI: FastAPI + SSE + vanilla JS single-page UI for Head of AI demo; 5 scenarios; live streaming; agent-vs-code moment; HITL panel; message previews; 634 tests
+- ✅ 15.5 — Demo sidebar fix: scenario cards not rendering due to JS SyntaxError (missing `)` in escHtml call); regression test added; 635 tests
 
 **Prompts remaining:**
 - *(none — P3 build sequence + demo complete)*
@@ -381,5 +382,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 15 (Demo UI — FastAPI + SSE + vanilla JS demo UI for Head of AI; 5 scenarios; live streaming; warm cream palette; agent-vs-code split; HITL panel; message previews; 634 tests; `pulsecraft demo serve`).*
+*Last updated: prompt 15.5 (Demo sidebar fix — JS SyntaxError in escHtml call prevented scenario cards from rendering; regression test added; 635 tests).*
 *P3 build sequence + demo complete.*

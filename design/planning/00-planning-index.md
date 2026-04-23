@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 15 (Demo UI — FastAPI + SSE + vanilla JS single-page app for Head of AI demo; 5 scenarios; live streaming; 634 tests passing; `pulsecraft demo serve`).
+**Last completed:** Prompt 15.5 (Demo sidebar fix — JS SyntaxError in escHtml call prevented scenario cards from rendering; regression test added; 635 tests passing).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15. P3 build sequence + demo are done.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15.5. P3 build sequence + demo are done.
 
 ---
 
@@ -139,6 +139,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is comple
 | 101 | Eval pytest integration | `tests/eval/test_agent_evals.py` | 14 | 15 parametrized tests; opt-in via PULSECRAFT_RUN_EVAL_TESTS=1; @pytest.mark.eval |
 | 102 | Eval baseline report | `audit/eval/2026-04-23-baseline/` | 14 | 15 cases × 3 runs; stable=10/acceptable=1/unstable=1/skipped=3; PASS ($1.741, 26.9 min) |
 | 103 | Enterprise identifier removal | *(25 files touched)* | 14.6 | All org-specific identifiers removed; replaced with neutral terminology; zero behavior changes |
+| 104 | Demo sidebar fix | `src/pulsecraft/demo/static/app.js`, `tests/demo/test_server_routes.py` | 15.5 | Fixed JS SyntaxError (missing `)` in escHtml call) that prevented scenario cards from rendering; regression test added |
 
 ---
 
