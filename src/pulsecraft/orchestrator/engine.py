@@ -10,6 +10,7 @@ code invariants — agents reason within policy; orchestrator enforces policy.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import uuid
@@ -711,18 +712,25 @@ class Orchestrator:
 
     # ── main entry point ──────────────────────────────────────────────────
 
-    def run_change(self, artifact: ChangeArtifact) -> RunResult:
+    def run_change(
+        self,
+        artifact: ChangeArtifact,
+        on_event: Callable[[dict[str, Any]], None] | None = None,
+    ) -> RunResult:
         """Drive a single ChangeArtifact through the full pipeline.
 
         Returns a RunResult summarizing the terminal state. Any unexpected exception
         transitions state to FAILED and writes an error audit record before re-raising.
+
+        on_event: optional callback invoked at key pipeline points; used by the demo
+        UI layer. Callers that omit it (all existing code and tests) are unaffected.
         """
         change_id = artifact.change_id
         state = WorkflowState.RECEIVED
         result = RunResult(change_id=change_id, terminal_state=state)
 
         try:
-            return self._run(artifact, state, result)
+            return self._run(artifact, state, result, on_event=on_event)
         except Exception as exc:
             error_msg = str(exc)[:400]
             self._write_error(change_id, "UNEXPECTED_ERROR", error_msg)
@@ -730,25 +738,44 @@ class Orchestrator:
             result.errors.append(error_msg)
             result.audit_record_count = self._audit.record_count(change_id)
             logger.exception("orchestrator_unexpected_error", change_id=change_id)
+            if on_event:
+                on_event({"type": "error", "stage": "unexpected", "message": error_msg, "recoverable": False})
+                on_event({"type": "terminal_state", "state": "FAILED", "bu_outcomes": [], "total_cost_usd": 0.0, "elapsed_s": 0.0})
             return result
+
+    def _emit(self, on_event: Callable[[dict[str, Any]], None] | None, event_type: str, **payload: Any) -> None:
+        """Fire an event to the optional observer. Never raises."""
+        if on_event is None:
+            return
+        with contextlib.suppress(Exception):
+            on_event({"type": event_type, **payload})
 
     def _run(
         self,
         artifact: ChangeArtifact,
         state: WorkflowState,
         result: RunResult,
+        on_event: Callable[[dict[str, Any]], None] | None = None,
     ) -> RunResult:
         change_id = artifact.change_id
         policy = get_policy()
 
         # ── Step 1: RECEIVED ──────────────────────────────────────────────
         self._write_transition(change_id, None, WorkflowState.RECEIVED, "artifact accepted")
+        self._emit(on_event, "run_started",
+                   change_id=change_id,
+                   title=artifact.title,
+                   source_type=str(artifact.source_type),
+                   source_ref=str(artifact.source_ref or ""),
+                   raw_text=artifact.raw_text[:2000])
 
         # ── Step 2: SignalScribe ──────────────────────────────────────────
         _pi_ctx = HookContext(
             stage="pre_ingest", change_id=change_id, payload={"raw_text": artifact.raw_text}
         )
         _pi_result = self._invoke_hook("pre_ingest", _pi_ctx)
+        self._emit(on_event, "hook_fired", stage="pre_ingest", name="pre_ingest",
+                   outcome=_pi_result.outcome, reason=_pi_result.reason or "")
         if _pi_result.outcome == "fail":
             _pi_reg = self._hooks.get("pre_ingest")
             if _pi_reg and _pi_reg.fail == "closed":
@@ -758,13 +785,18 @@ class Orchestrator:
                 result.terminal_state = state
                 result.errors.append(_pi_result.reason)
                 result.audit_record_count = self._audit.record_count(change_id)
+                self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
                 return result
         elif _pi_result.outcome == "pass":
             _redacted = _pi_result.details.get("redacted_text")
             if isinstance(_redacted, str):
                 artifact.raw_text = _redacted
+        self._emit(on_event, "agent_started", agent="signalscribe", gate_batch=[1, 2, 3])
         change_brief = self._signalscribe.invoke(artifact)
         result.change_brief = change_brief
+        for _d in change_brief.decisions:
+            self._emit(on_event, "gate_decision", agent="signalscribe", gate=_d.gate,
+                       verb=str(_d.verb), confidence=_d.confidence, reason=_d.reason)
 
         audit_decisions = [
             AuditDecision(gate=d.gate, verb=str(d.verb), reason=d.reason[:200])
@@ -793,6 +825,8 @@ class Orchestrator:
             },
         )
         _pa_ss_result = self._invoke_hook("post_agent", _pa_ss_ctx)
+        self._emit(on_event, "hook_fired", stage="post_agent", name="post_agent_signalscribe",
+                   outcome=_pa_ss_result.outcome, reason=_pa_ss_result.reason or "")
         if _pa_ss_result.outcome == "fail":
             _pa_ss_reg = self._hooks.get("post_agent")
             if _pa_ss_reg and _pa_ss_reg.fail == "closed":
@@ -802,6 +836,7 @@ class Orchestrator:
                 result.terminal_state = state
                 result.errors.append(_pa_ss_result.reason)
                 result.audit_record_count = self._audit.record_count(change_id)
+                self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
                 return result
 
         # State machine event from SignalScribe decisions — explicit agent decisions
@@ -837,6 +872,8 @@ class Orchestrator:
                 result.hitl_reason = HITLReason.CONFIDENCE_BELOW_THRESHOLD
                 result.terminal_state = state
                 result.audit_record_count = self._audit.record_count(change_id)
+                self._emit(on_event, "hitl_triggered", reason=conf_reason, trigger_type="confidence_low")
+                self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=change_brief.usd_estimate or 0.0, elapsed_s=0.0)
                 return result
 
         state = self._transition(change_id, state, event, f"signalscribe event: {event}")
@@ -855,8 +892,10 @@ class Orchestrator:
                 )
                 result.hitl_queued = True
                 result.hitl_reason = hitl_reason
+                self._emit(on_event, "hitl_triggered", reason=str(hitl_reason), trigger_type=str(hitl_reason))
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=change_brief.usd_estimate or 0.0, elapsed_s=0.0)
             return result
 
         # ── Step 3: BU pre-filter → ROUTED ───────────────────────────────
@@ -865,6 +904,7 @@ class Orchestrator:
             state = self._transition(change_id, state, "no_candidate_bus", "no BU registry matches")
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=change_brief.usd_estimate or 0.0, elapsed_s=0.0)
             return result
 
         state = self._transition(
@@ -878,6 +918,11 @@ class Orchestrator:
         # ── Step 4: BUAtlas fan-out → PERSONALIZED ───────────────────────
         personalized_briefs: dict[str, PersonalizedBrief] = {}
         buatlas_hitl_triggered = False
+
+        # Emit started events for all candidate BUs so shimmer cards appear immediately
+        for _bu_id_pre in candidate_buses:
+            _bu_prof_pre = get_bu_profile(_bu_id_pre)
+            self._emit(on_event, "buatlas_instance_started", bu_id=_bu_id_pre, bu_name=_bu_prof_pre.name)
 
         if self._buatlas_fanout_fn is not None:
             # Real parallel fan-out via buatlas_fanout_sync
@@ -902,10 +947,16 @@ class Orchestrator:
                         error_type=fanout_item.error_type,
                         retriable=fanout_item.retriable,
                     )
+                    self._emit(on_event, "buatlas_instance_completed", bu_id=bu_id, verdict="FAILED")
                     continue
 
                 pb = fanout_item
                 personalized_briefs[bu_id] = pb
+                for _d in pb.decisions:
+                    self._emit(on_event, "gate_decision", agent="buatlas", gate=_d.gate,
+                               verb=str(_d.verb), confidence=_d.confidence, reason=_d.reason, bu_id=bu_id)
+                self._emit(on_event, "buatlas_instance_completed", bu_id=bu_id,
+                           verdict=str(pb.message_quality), relevance=str(pb.relevance))
                 pb_decisions = [
                     AuditDecision(gate=d.gate, verb=str(d.verb), reason=d.reason[:200])
                     for d in pb.decisions
@@ -934,6 +985,8 @@ class Orchestrator:
                     },
                 )
                 _pa_ba_result = self._invoke_hook("post_agent", _pa_ba_ctx)
+                self._emit(on_event, "hook_fired", stage="post_agent", name=f"post_agent_buatlas_{bu_id}",
+                           outcome=_pa_ba_result.outcome, reason=_pa_ba_result.reason or "")
                 if _pa_ba_result.outcome == "fail":
                     _pa_ba_reg = self._hooks.get("post_agent")
                     if _pa_ba_reg and _pa_ba_reg.fail == "closed":
@@ -946,6 +999,7 @@ class Orchestrator:
                         result.terminal_state = state
                         result.errors.append(_pa_ba_result.reason)
                         result.audit_record_count = self._audit.record_count(change_id)
+                        self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
                         return result
                 for d in pb.decisions:
                     if d.verb == DecisionVerb.ESCALATE:
@@ -956,6 +1010,11 @@ class Orchestrator:
                 bu_profile = get_bu_profile(bu_id)
                 pb = self._buatlas.invoke(change_brief, bu_profile)
                 personalized_briefs[bu_id] = pb
+                for _d in pb.decisions:
+                    self._emit(on_event, "gate_decision", agent="buatlas", gate=_d.gate,
+                               verb=str(_d.verb), confidence=_d.confidence, reason=_d.reason, bu_id=bu_id)
+                self._emit(on_event, "buatlas_instance_completed", bu_id=bu_id,
+                           verdict=str(pb.message_quality), relevance=str(pb.relevance))
 
                 pb_decisions = [
                     AuditDecision(gate=d.gate, verb=str(d.verb), reason=d.reason[:200])
@@ -987,6 +1046,8 @@ class Orchestrator:
                     },
                 )
                 _pa_ba_result = self._invoke_hook("post_agent", _pa_ba_ctx)
+                self._emit(on_event, "hook_fired", stage="post_agent", name=f"post_agent_buatlas_{bu_id}",
+                           outcome=_pa_ba_result.outcome, reason=_pa_ba_result.reason or "")
                 if _pa_ba_result.outcome == "fail":
                     _pa_ba_reg = self._hooks.get("post_agent")
                     if _pa_ba_reg and _pa_ba_reg.fail == "closed":
@@ -999,6 +1060,7 @@ class Orchestrator:
                         result.terminal_state = state
                         result.errors.append(_pa_ba_result.reason)
                         result.audit_record_count = self._audit.record_count(change_id)
+                        self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
                         return result
                 for d in pb.decisions:
                     if d.verb == DecisionVerb.ESCALATE:
@@ -1036,6 +1098,8 @@ class Orchestrator:
             result.hitl_reason = HITLReason.AGENT_ESCALATE
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "hitl_triggered", reason="BUAtlas ESCALATE", trigger_type="agent_escalate")
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
             return result
 
         state = self._transition(
@@ -1061,6 +1125,8 @@ class Orchestrator:
             result.hitl_reason = step5_reason
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "hitl_triggered", reason=hitl_desc, trigger_type=str(step5_reason))
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
             return result
 
         # ── Step 6: PushPilot scheduling ──────────────────────────────────
@@ -1074,6 +1140,7 @@ class Orchestrator:
             state = self._transition(change_id, state, "all_not_worth", "no WORTH_SENDING briefs")
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
             return result
 
         delivery_outputs: dict[str, PushPilotOutput] = {}
@@ -1081,6 +1148,7 @@ class Orchestrator:
 
         for bu_id, pb in worth_sending.items():
             bu_profile = get_bu_profile(bu_id)
+            self._emit(on_event, "agent_started", agent="pushpilot", gate_batch=[6], bu_id=bu_id)
             raw_output = self._pushpilot.invoke(pb, bu_profile)
             correlation = CorrelationIds(
                 brief_id=change_brief.brief_id,
@@ -1116,6 +1184,8 @@ class Orchestrator:
                 },
             )
             _pa_pp_result = self._invoke_hook("post_agent", _pa_pp_ctx)
+            self._emit(on_event, "hook_fired", stage="post_agent", name=f"post_agent_pushpilot_{bu_id}",
+                       outcome=_pa_pp_result.outcome, reason=_pa_pp_result.reason or "")
             if _pa_pp_result.outcome == "fail":
                 _pa_pp_reg = self._hooks.get("post_agent")
                 if _pa_pp_reg and _pa_pp_reg.fail == "closed":
@@ -1128,6 +1198,7 @@ class Orchestrator:
                     result.terminal_state = state
                     result.errors.append(_pa_pp_result.reason)
                     result.audit_record_count = self._audit.record_count(change_id)
+                    self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
                     return result
 
             # Apply code-level policy invariants (quiet hours, channel approval, confidence)
@@ -1135,6 +1206,13 @@ class Orchestrator:
                 change_id, bu_id, raw_output, bu_profile, policy, correlation
             )
             delivery_outputs[bu_id] = output
+
+            _diverged = (raw_output.decision != output.decision or raw_output.channel != output.channel)
+            self._emit(on_event, "pushpilot_decision",
+                       bu_id=bu_id,
+                       preference={"verb": str(raw_output.decision), "channel": str(raw_output.channel), "reason": raw_output.reason[:300]},
+                       enforced={"verb": str(output.decision), "channel": str(output.channel), "reason": output.reason[:300]},
+                       diverged=_diverged)
 
             if output.decision == DeliveryDecision.ESCALATE:
                 pushpilot_hitl = True
@@ -1157,6 +1235,8 @@ class Orchestrator:
             result.hitl_reason = HITLReason.AGENT_ESCALATE
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "hitl_triggered", reason="PushPilot ESCALATE", trigger_type="agent_escalate")
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
             return result
 
         # ── Step 7: Execute deliveries ────────────────────────────────────
@@ -1178,6 +1258,8 @@ class Orchestrator:
                 },
             )
             _pd_result = self._invoke_hook("pre_deliver", _pd_ctx)
+            self._emit(on_event, "hook_fired", stage="pre_deliver", name=f"pre_deliver_{bu_id}",
+                       outcome=_pd_result.outcome, reason=_pd_result.reason or "")
             if _pd_result.outcome == "fail":
                 _pd_reg = self._hooks.get("pre_deliver")
                 if _pd_reg and _pd_reg.fail == "closed":
@@ -1190,10 +1272,16 @@ class Orchestrator:
                     result.terminal_state = state
                     result.errors.append(_pd_result.reason)
                     result.audit_record_count = self._audit.record_count(change_id)
+                    self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
                     return result
             _decision_str, is_dedupe_conflict = self._execute_delivery(
                 change_id, bu_id, output, pb, bu_profile
             )
+            if not is_dedupe_conflict:
+                self._emit(on_event, "delivery_rendered",
+                           bu_id=bu_id,
+                           channel=str(output.channel) if output.channel else "unspecified",
+                           variant=_decision_str)
             if is_dedupe_conflict:
                 dedupe_conflict_bu = bu_id
                 break
@@ -1217,6 +1305,8 @@ class Orchestrator:
             result.hitl_reason = HITLReason.DEDUPE_OR_RATE_LIMIT_CONFLICT
             result.terminal_state = state
             result.audit_record_count = self._audit.record_count(change_id)
+            self._emit(on_event, "hitl_triggered", reason="dedupe conflict", trigger_type="dedupe_conflict", bu_id=dedupe_conflict_bu)
+            self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=[], total_cost_usd=0.0, elapsed_s=0.0)
             return result
 
         # ── Step 8: Determine terminal state from delivery decisions ──────
@@ -1226,8 +1316,13 @@ class Orchestrator:
             change_id, state, terminal_event, f"delivery outcomes: {decisions_made}"
         )
 
+        bu_outcomes = [
+            {"bu_id": bid, "state": str(o.decision), "channel": str(o.channel) if o.channel else "unspecified", "reason": o.reason[:200]}
+            for bid, o in delivery_outputs.items()
+        ]
         result.terminal_state = state
         result.audit_record_count = self._audit.record_count(change_id)
+        self._emit(on_event, "terminal_state", state=str(state), bu_outcomes=bu_outcomes, total_cost_usd=0.0, elapsed_s=0.0)
         return result
 
     def _delivery_terminal_event(self, decisions: list[DeliveryDecision]) -> str:

@@ -41,9 +41,10 @@
 - ✅ 14 — Eval harness: per-agent variance-aware eval, 15 cases × 3 agents, classifier + runner + reporter + aggregator, baseline report (stable=10/acceptable=1/unstable=1, PASS), 619 tests
 - ✅ 14.5 — README overhaul (publication-quality README with Mermaid architecture diagram, decision guides, eval metrics, use cases, comparison table, roadmap; 625 lines)
 - ✅ 14.6 — Enterprise identifier references removed; repo now reads as generic enterprise project
+- ✅ 15 — Demo UI: FastAPI + SSE + vanilla JS single-page UI for Head of AI demo; 5 scenarios; live streaming; agent-vs-code moment; HITL panel; message previews; 634 tests
 
 **Prompts remaining:**
-- *(none — P3 build sequence complete)*
+- *(none — P3 build sequence + demo complete)*
 
 ## Where to find context
 
@@ -380,5 +381,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 14.5 (README overhaul — 625-line publication-quality README with Mermaid architecture diagram, decision guides, eval baseline metrics, roadmap, comparison table; all metrics grounded in repo artifacts).*
-*P3 build sequence complete. No further prompts planned.*
+*Last updated: prompt 15 (Demo UI — FastAPI + SSE + vanilla JS demo UI for Head of AI; 5 scenarios; live streaming; warm cream palette; agent-vs-code split; HITL panel; message previews; 634 tests; `pulsecraft demo serve`).*
+*P3 build sequence + demo complete.*

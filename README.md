@@ -3,7 +3,7 @@
 > AI agents that turn marketplace changes into BU-ready notifications — with safety gates, audit trails, and human-in-the-loop review.
 
 [![Python](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-619%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-634%20passing-brightgreen)](#testing)
 [![Model](https://img.shields.io/badge/model-claude--sonnet--4--6-orange)](https://docs.anthropic.com/en/docs/about-claude/models/overview)
 [![License](https://img.shields.io/badge/license-internal-red)](#license)
 [![Status](https://img.shields.io/badge/status-walking%20skeleton-yellow)](#roadmap)
@@ -522,7 +522,7 @@ pulsecraft-change-intelligence/
 | Integration | `tests/integration/` | ~49 | `.venv/bin/pytest tests/integration/ -m "not llm"` |
 | LLM integration | `tests/integration/` | 30 | `.venv/bin/pytest -m llm` (requires `ANTHROPIC_API_KEY`) |
 | Eval regression | `tests/eval/` | 15 | `PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/pytest -m eval` |
-| **Total (non-LLM)** | | **619** | `.venv/bin/pytest tests/ -m "not llm and not eval"` |
+| **Total (non-LLM)** | | **634** | `.venv/bin/pytest tests/ -m "not llm and not eval"` |
 
 Eval baseline (2026-04-23): 15 cases × 3 runs × 3 agents. Results: stable=10, acceptable_variance=1, unstable=1, skipped=3. **PASS** (0 false_positive_risk + 0 mismatch). Total cost $1.741 over 26.9 min. See `audit/eval/2026-04-23-baseline/aggregate.md`.
 
@@ -553,7 +553,7 @@ v0.1.0 — walking skeleton (current) ✅
   Deterministic orchestrator with 12-state machine
   13 operator subcommands including /explain with run scoping
   Per-agent variance-aware eval harness (baseline: stable=10/acceptable=1/unstable=1)
-  619 tests, 8 fixtures, ~$0.08 per change end-to-end
+  634 tests, 8 fixtures, ~$0.08 per change end-to-end
 
 v0.2.0 — pilot-ready (next) 🟡
   Real ingest transports (Confluence, Jira, LaunchDarkly, ServiceNow)

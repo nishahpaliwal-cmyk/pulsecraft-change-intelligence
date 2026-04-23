@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PulseCraft · Change Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- Top bar -->
+    <header class="top-bar" role="banner">
+      <div class="top-bar__brand">
+        <span class="brand-name">PulseCraft</span>
+        <span class="brand-sub">· Change Intelligence</span>
+      </div>
+      <div class="top-bar__center">
+        <span class="demo-pill" aria-label="Demo mode — synthetic BUs, stubbed transports">demo mode</span>
+      </div>
+      <div class="top-bar__right">
+        <span class="cost-counter" id="cost-counter" aria-live="polite">—</span>
+      </div>
+    </header>
+
+    <!-- Main layout -->
+    <div class="layout">
+
+      <!-- Scenario sidebar -->
+      <aside class="sidebar" role="navigation" aria-label="Scenarios">
+        <div class="sidebar__heading">Scenarios</div>
+        <div class="scenario-list" id="scenario-list" role="list">
+          <!-- Populated by JS -->
+        </div>
+        <div class="sidebar__hint">Keyboard shortcuts: <kbd>1</kbd>–<kbd>5</kbd></div>
+      </aside>
+
+      <!-- Decision document -->
+      <main class="document" id="document" role="main" aria-label="Decision document">
+        <!-- Welcome state -->
+        <div class="welcome" id="welcome">
+          <div class="welcome__illustration" aria-hidden="true">
+            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="40" r="16" fill="#534AB7" opacity="0.25"/>
+              <circle cx="40" cy="28" r="16" fill="#0F6E56" opacity="0.25"/>
+              <circle cx="56" cy="40" r="16" fill="#993C1D" opacity="0.25"/>
+            </svg>
+          </div>
+          <h2 class="welcome__heading">Select a scenario to watch PulseCraft reason about a change.</h2>
+          <p class="welcome__body">Each scenario runs the real pipeline with real LLM agents. Expect ~30–50 seconds per run.</p>
+          <p class="welcome__hint">Keyboard shortcuts: 1–5</p>
+        </div>
+        <!-- Run content appended here by JS -->
+        <div id="run-content" hidden></div>
+      </main>
+
+      <!-- Progress rail -->
+      <aside class="progress-rail" id="progress-rail" role="complementary" aria-label="Pipeline progress">
+        <div class="rail__track" id="rail-track">
+          <!-- Dots populated by JS -->
+        </div>
+      </aside>
+
+    </div><!-- .layout -->
+
+    <!-- Audit trail drawer -->
+    <div class="drawer" id="audit-drawer" hidden aria-modal="true" role="dialog" aria-label="Audit trail">
+      <div class="drawer__header">
+        <span class="drawer__title">Audit trail</span>
+        <button class="drawer__close" id="drawer-close" aria-label="Close audit trail">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="drawer__body" id="drawer-body">
+        <p class="drawer__hint">Run a scenario first, then view its audit trail here.</p>
+      </div>
+    </div>
+    <div class="drawer-overlay" id="drawer-overlay" hidden></div>
+
+    <!-- Screen-reader live region for accessibility -->
+    <div class="sr-only" aria-live="polite" aria-atomic="false" id="sr-announcer"></div>
+
+  </div><!-- #app -->
+
+  <script src="/static/app.js" type="module"></script>
+</body>
+</html>

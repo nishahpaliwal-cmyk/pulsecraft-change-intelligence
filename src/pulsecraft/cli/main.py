@@ -24,6 +24,7 @@ from pulsecraft.cli.commands import (  # noqa: E402
     answer,
     approve,
     audit,
+    demo,
     digest,
     dryrun,
     edit,
@@ -44,6 +45,7 @@ app = typer.Typer(
 
 # Register all commands
 run_change.register(app)
+demo.register(app)
 ingest.register(app)
 dryrun.register(app)
 approve.register(app)

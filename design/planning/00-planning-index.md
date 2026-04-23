@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 14.6 (enterprise identifier references removed — repo reads as generic enterprise AI-agent system; zero behavior changes; all 619 tests passing).
+**Last completed:** Prompt 15 (Demo UI — FastAPI + SSE + vanilla JS single-page app for Head of AI demo; 5 scenarios; live streaming; 634 tests passing; `pulsecraft demo serve`).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 14. P3 build sequence is done.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15. P3 build sequence + demo are done.
 
 ---
 
@@ -219,6 +219,7 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 14 | `prompts/14-eval-harness.md` | Fixture-based evals | ✅ Done |
 | 14.5 | `prompts/14.5-readme-overhaul.md` | README overhaul — 625-line publication-quality README with Mermaid diagram | ✅ Done |
 | 14.6 | `prompts/14.6-remove-abbvie.md` | Remove org-specific identifiers — repo reads as generic enterprise project | ✅ Done |
+| 15 | `prompts/15-demo-ui.md` | Demo UI — FastAPI + SSE + vanilla JS SPA; 5 scenarios; 634 tests; `pulsecraft demo serve` | ✅ Done |
 
 ---
 
