@@ -553,7 +553,7 @@ v0.1.0 — walking skeleton (current) ✅
   Deterministic orchestrator with 12-state machine
   13 operator subcommands including /explain with run scoping
   Per-agent variance-aware eval harness (baseline: stable=10/acceptable=1/unstable=1)
-  635 tests, 8 fixtures, ~$0.08 per change end-to-end
+  636 tests, 8 fixtures, ~$0.08 per change end-to-end
 
 v0.2.0 — pilot-ready (next) 🟡
   Real ingest transports (Confluence, Jira, LaunchDarkly, ServiceNow)

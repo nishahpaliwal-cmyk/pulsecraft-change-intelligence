@@ -43,6 +43,7 @@
 - ✅ 14.6 — Enterprise identifier references removed; repo now reads as generic enterprise project
 - ✅ 15 — Demo UI: FastAPI + SSE + vanilla JS single-page UI for Head of AI demo; 5 scenarios; live streaming; agent-vs-code moment; HITL panel; message previews; 634 tests
 - ✅ 15.5 — Demo sidebar fix: scenario cards not rendering due to JS SyntaxError (missing `)` in escHtml call); regression test added; 635 tests
+- ✅ 15.5.1 — HITLQueue fix: instrumented_run called HITLQueue() with no args; pass audit_writer; try/except wraps _run_pipeline; 636 tests
 
 **Prompts remaining:**
 - *(none — P3 build sequence + demo complete)*
@@ -382,5 +383,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 15.5 (Demo sidebar fix — JS SyntaxError in escHtml call prevented scenario cards from rendering; regression test added; 635 tests).*
+*Last updated: prompt 15.5.1 (HITLQueue fix — instrumented_run called HITLQueue() with no args, silently crashing background task; pass audit_writer; try/except wraps _run_pipeline; 636 tests).*
 *P3 build sequence + demo complete.*
