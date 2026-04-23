@@ -75,6 +75,30 @@ class TestCreateRunRoute:
         assert "run_id" in resp.json()
         assert resp.json()["run_id"].startswith("run_")
 
+    def test_scenario_002_emits_archived_terminal_state(self) -> None:
+        """Regression: HITLQueue was constructed without audit_writer, crashing _run_pipeline."""
+        import json
+
+        async def _mock_start(scenario_id: str) -> str:
+            from pulsecraft.demo.event_bus import bus
+            from pulsecraft.demo.events import Event
+            run_id = bus.create_run()
+            bus.publish(run_id, Event(run_id, "run_started", {"title": "pure internal refactor"}))
+            bus.publish(run_id, Event(run_id, "terminal_state", {"state": "ARCHIVED"}))
+            return run_id
+
+        with patch("pulsecraft.demo.server.start_run", new=_mock_start):
+            resp = client.post("/api/runs", json={"scenario_id": "002"})
+        assert resp.status_code == 200
+        run_id = resp.json()["run_id"]
+
+        sse_resp = client.get(f"/api/runs/{run_id}/events")
+        assert sse_resp.status_code == 200
+        data_lines = [ln for ln in sse_resp.text.strip().split("\n") if ln.startswith("data:")]
+        last = json.loads(data_lines[-1][len("data: "):])
+        assert last["type"] == "terminal_state"
+        assert last["payload"]["state"] == "ARCHIVED"
+
 
 class TestSSERoute:
     def test_unknown_run_id_returns_404(self) -> None:

@@ -92,12 +92,13 @@ def _run_pipeline(run_id: str, fixture_data: dict[str, Any]) -> None:
         event = make_event(run_id, raw_copy)
         bus.publish(run_id, event)
 
+    audit_writer = AuditWriter()
     orchestrator = Orchestrator(
         signalscribe=SignalScribe(),
         buatlas=BUAtlas(),
         pushpilot=PushPilot(),
-        audit_writer=AuditWriter(),
-        hitl_queue=HITLQueue(),
+        audit_writer=audit_writer,
+        hitl_queue=HITLQueue(audit_writer=audit_writer),
         buatlas_fanout_fn=buatlas_fanout_sync,
     )
 
