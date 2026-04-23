@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 13 (first end-to-end dryrun — all 8 fixtures with real agents; 2 bugs found and fixed in post_agent routing-verb semantics; dryrun report at design/dryrun/2026-04-23-dryrun-report.md; 606 tests passing).
+**Last completed:** Prompt 14 (eval harness — per-agent variance-aware eval; classifier + runner + reporter + aggregator; 15 cases × 3 runs; baseline PASS stable=10/acceptable=1/unstable=1 at audit/eval/2026-04-23-baseline/; 619 tests passing).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is at prompt 13. Prompt 14 (eval harness) is next.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 14. P3 build sequence is done.
 
 ---
 
@@ -28,7 +28,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | **P6 — Skills** | Skill definitions and implementations | ⏳ Prompts 08–10 |
 | **P7 — Commands** | Slash command prompts | ✅ Done (prompt 11) |
 | **P8 — Hooks** | Hook definitions + policy enforcement | ✅ Done (prompt 12) |
-| **P9 — Dryrun + Evals** | First end-to-end dryrun, eval harness | ⏳ Prompts 13–14 (13 done) |
+| **P9 — Dryrun + Evals** | First end-to-end dryrun, eval harness | ✅ Done (prompts 13–14) |
 
 ---
 
@@ -129,6 +129,15 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is at pro
 | 91 | post_agent routing-verb fix | `src/pulsecraft/hooks/post_agent.py` | 13 | Skip confidence checks when any decision is a routing verb (ESCALATE, NEED_CLARIFICATION, UNRESOLVABLE, ARCHIVE, HOLD_INDEFINITE) |
 | 92 | post_agent routing-verb regression tests | `tests/unit/hooks/test_post_agent.py` | 13 | 5 new tests for routing-verb skip semantics; 1 test for COMMUNICATE+HOLD_INDEFINITE mix |
 | 93 | Dryrun report | `design/dryrun/2026-04-23-dryrun-report.md` | 13 | 8-fixture dryrun with real agents; findings, hook summary, /explain outputs, open questions |
+| 94 | Eval expectations | `src/pulsecraft/eval/expectations.py` | 14 | 15 ExpectedOutcome entries (8 SS, 4 BA, 3 PP); expected/acceptable/false_positive verb sets |
+| 95 | Eval classifier | `src/pulsecraft/eval/classifier.py` | 14 | Asymmetric 5-tier classification: false_positive_risk > mismatch > unstable > acceptable_variance > stable |
+| 96 | Eval runner | `src/pulsecraft/eval/runner.py` | 14 | Per-agent isolated runners; BA setup = SS once; PP setup = SS+BA once; candidate-set skip logic |
+| 97 | Eval reporter | `src/pulsecraft/eval/reporter.py` | 14 | Per-agent report_{agent}.md + summary_{agent}.json |
+| 98 | Eval aggregator | `src/pulsecraft/eval/aggregator.py` | 14 | Grand-total aggregate.md + aggregate.json; pass criteria (0 fp_risk + 0 mismatch) |
+| 99 | Eval entry points | `scripts/eval/run_signalscribe.py`, `run_buatlas.py`, `run_pushpilot.py`, `run_all.py` | 14 | Per-agent CLI scripts; exit 0 = pass, exit 1 = attention required |
+| 100 | Eval unit tests | `tests/unit/eval/test_classifier.py` | 14 | 13 tests covering all 5 classification tiers + edge cases |
+| 101 | Eval pytest integration | `tests/eval/test_agent_evals.py` | 14 | 15 parametrized tests; opt-in via PULSECRAFT_RUN_EVAL_TESTS=1; @pytest.mark.eval |
+| 102 | Eval baseline report | `audit/eval/2026-04-23-baseline/` | 14 | 15 cases × 3 runs; stable=10/acceptable=1/unstable=1/skipped=3; PASS ($1.741, 26.9 min) |
 
 ---
 
@@ -205,8 +214,8 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 10 | `prompts/10-skills-delivery.md` | Delivery rendering skills | ✅ Done |
 | 11 | `prompts/11-commands.md` | Operator slash commands | ✅ Done |
 | 12 | `prompts/12-hooks.md` | Guardrail hooks in settings.json | ✅ Done |
-| 13 | `prompts/13-dryrun-walkthrough.md` | First end-to-end dryrun | ⏳ |
-| 14 | `prompts/14-eval-harness.md` | Fixture-based evals | ⏳ |
+| 13 | `prompts/13-dryrun-walkthrough.md` | First end-to-end dryrun | ✅ Done |
+| 14 | `prompts/14-eval-harness.md` | Fixture-based evals | ✅ Done |
 
 ---
 

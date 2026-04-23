@@ -6,7 +6,7 @@ PulseCraft is an internal AI service that monitors marketplace product and featu
 
 The service turns unstructured change artifacts (release notes, changelogs, announcements) into structured signals, maps each signal to the BUs most likely to care, drafts concise BU-tailored messages, and routes them through a human-in-the-loop approval gate before delivery.
 
-**Status:** All three agents live — orchestrator complete (prompt 04), SignalScribe (prompt 05), BUAtlas (prompt 06), PushPilot (prompt 07). Ingest skills complete (prompt 08). Registry/policy/audit skills extracted (prompt 09). Delivery rendering skills complete (prompt 10). Operator slash commands complete (prompt 11). Explain scoping fix (prompt 11.5). Guardrail hooks complete (prompt 12): pre_ingest, post_agent, pre_deliver, audit_hook wired at 5 lifecycle points; 606 tests. First end-to-end dryrun complete (prompt 13): all 8 fixtures with real agents, 2 bugs fixed, dryrun report in design/dryrun/. Next: eval harness (prompt 14).
+**Status:** P3 build sequence complete. All three agents live — orchestrator (prompt 04), SignalScribe (prompt 05), BUAtlas (prompt 06), PushPilot (prompt 07). Ingest skills (prompt 08), registry/policy/audit skills (prompt 09), delivery rendering skills (prompt 10), operator slash commands (prompt 11/11.5), guardrail hooks (prompt 12). First end-to-end dryrun (prompt 13): all 8 fixtures with real agents, 2 bugs fixed. Eval harness (prompt 14): per-agent variance-aware eval, baseline PASS stable=10/acceptable=1/unstable=1 ($1.74), 619 tests.
 
 > **For Claude Code sessions:** read [`CLAUDE.md`](CLAUDE.md) for standing instructions before taking any action in this repo.
 

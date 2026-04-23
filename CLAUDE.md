@@ -38,9 +38,10 @@
 - ✅ 11.5 — Explain scoping fix: /explain scoped to latest run by default, run-boundary detection, --run/--all/--list-runs flags, cost wired to audit records, 557 tests
 - ✅ 12 — Guardrail hooks: pre_ingest, post_agent, pre_deliver, audit_hook; HookContext/HookResult base types; config loader; 5 engine lifecycle call sites; 43 new tests (600 total)
 - ✅ 13 — First end-to-end dryrun: all 8 fixtures with real agents, 2 bugs fixed (HOLD_INDEFINITE routing verb; mixed-decision confidence semantics), dryrun report in design/dryrun/, 606 tests
+- ✅ 14 — Eval harness: per-agent variance-aware eval, 15 cases × 3 agents, classifier + runner + reporter + aggregator, baseline report (stable=10/acceptable=1/unstable=1, PASS), 619 tests
 
 **Prompts remaining:**
-- ⏳ 14 — Eval harness
+- *(none — P3 build sequence complete)*
 
 ## Where to find context
 
@@ -323,6 +324,31 @@ All 8 fixtures ran with real agents (claude-sonnet-4-6). Two bugs were found and
 
 Key observation: `post_agent` confidence checks should only fire when the agent is on the positive commit path (all decisions are actionable verbs). If the agent self-routes, the confidence of earlier gates is irrelevant.
 
+## Eval harness (prompt 14)
+
+Location: `src/pulsecraft/eval/`
+
+| Module | Purpose |
+|---|---|
+| `expectations.py` | 15 `ExpectedOutcome` entries (8 SS, 4 BA, 3 PP) with expected/acceptable/false_positive verb sets |
+| `classifier.py` | Asymmetric 5-tier: `false_positive_risk > mismatch > unstable > acceptable_variance > stable` |
+| `runner.py` | Per-agent isolated runners: BA setup = SS once; PP setup = SS+BA once; target runs N times |
+| `reporter.py` | Per-agent `report_{agent}.md` + `summary_{agent}.json` |
+| `aggregator.py` | Grand-total `aggregate.md` + `aggregate.json` with pass criteria |
+
+Entry points: `scripts/eval/run_signalscribe.py`, `run_buatlas.py`, `run_pushpilot.py`, `run_all.py`
+
+Pytest integration: `tests/eval/test_agent_evals.py` — opt-in via `PULSECRAFT_RUN_EVAL_TESTS=1`; `@pytest.mark.eval`
+
+Baseline report: `audit/eval/2026-04-23-baseline/` — stable=10 / acceptable=1 / unstable=1 / skipped=3 / PASS ($1.741, 26.9 min)
+
+Notable baseline observations:
+- SS 007_mlr_sensitive: unstable (READY 2/3, NEED_CLARIFICATION 1/3) — MLR boundary fixture, expected variance
+- SS 003_ambiguous_escalate: acceptable_variance (ARCHIVE 2/3, ESCALATE 1/3) — designed-ambiguous, ARCHIVE defensible
+- BUAtlas 006 bu_zeta + bu_delta, PushPilot 006 bu_zeta: skipped — fixture 006 impact_areas don't overlap those BUs
+
+Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are asymmetrically penalized because unwanted notifications erode BU trust faster than holding back.
+
 ## Common failure modes and fixes
 
 - **`ModuleNotFoundError: No module named 'pulsecraft'`** → you're running system `pytest` instead of venv. Use `.venv/bin/pytest`.
@@ -352,5 +378,5 @@ Key observation: `post_agent` confidence checks should only fire when the agent 
 
 ---
 
-*Last updated: prompt 13 (first end-to-end dryrun — all 8 fixtures with real agents; 2 bugs fixed in post_agent routing-verb semantics; dryrun report at design/dryrun/2026-04-23-dryrun-report.md; 606 tests passing).*
-*Next prompt: 14 — Eval harness.*
+*Last updated: prompt 14 (eval harness — per-agent variance-aware eval; classifier + runner + reporter + aggregator; 15 cases × 3 runs; baseline PASS stable=10/acceptable=1/unstable=1 at audit/eval/2026-04-23-baseline/; 619 tests passing).*
+*P3 build sequence complete. No further prompts planned.*
