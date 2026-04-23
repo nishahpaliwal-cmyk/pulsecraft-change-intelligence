@@ -99,7 +99,9 @@ def _run_pipeline(run_id: str, fixture_data: dict[str, Any]) -> None:
         pushpilot=PushPilot(),
         audit_writer=audit_writer,
         hitl_queue=HITLQueue(audit_writer=audit_writer),
-        buatlas_fanout_fn=buatlas_fanout_sync,
+        buatlas_fanout_fn=lambda briefs, bus: buatlas_fanout_sync(  # noqa: E731
+            briefs, bus, factory=lambda: BUAtlas()
+        ),
     )
 
     try:

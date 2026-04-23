@@ -185,6 +185,7 @@ async function runScenario(scenarioId) {
 
   updateSidebarActive(scenarioId);
   resetDocument();
+  hideWelcome();
   resetRail();
   resetCostCounter();
 
