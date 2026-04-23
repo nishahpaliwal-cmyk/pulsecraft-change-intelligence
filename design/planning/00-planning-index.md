@@ -9,7 +9,7 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 15.5.1 (HITLQueue fix — instrumented_run called HITLQueue() without audit_writer, silently crashing background pipeline; pass audit_writer, wrap _run_pipeline in try/except; 636 tests passing).
+**Last completed:** Prompt 15.5.2 (buatlas_fanout_sync fix — missing factory lambda crashed pipeline after SignalScribe; welcome state now hides immediately on scenario click; 636 tests passing).
 
 Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15.5. P3 build sequence + demo are done.
 
@@ -141,6 +141,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is comple
 | 103 | Enterprise identifier removal | *(25 files touched)* | 14.6 | All org-specific identifiers removed; replaced with neutral terminology; zero behavior changes |
 | 104 | Demo sidebar fix | `src/pulsecraft/demo/static/app.js`, `tests/demo/test_server_routes.py` | 15.5 | Fixed JS SyntaxError (missing `)` in escHtml call) that prevented scenario cards from rendering; regression test added |
 | 105 | HITLQueue fix | `src/pulsecraft/demo/instrumented_run.py`, `tests/demo/test_server_routes.py` | 15.5.1 | Pass audit_writer to HITLQueue; wrap _run_pipeline in try/except to surface errors via event bus |
+| 106 | buatlas_fanout_sync fix | `src/pulsecraft/demo/instrumented_run.py`, `src/pulsecraft/demo/static/app.js` | 15.5.2 | Pass factory lambda to buatlas_fanout_sync; hide welcome state immediately on scenario click |
 
 ---
 
