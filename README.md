@@ -1,6 +1,6 @@
 # PulseCraft
 
-> **AI-agent-driven change communication intelligence — turns marketplace changes into BU-ready notifications with safety gates, audit trails, and human review.**
+> AI agents that turn marketplace changes into BU-ready notifications — with safety gates, audit trails, and human-in-the-loop review.
 
 [![Python](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/)
 [![Tests](https://img.shields.io/badge/tests-619%20passing-brightgreen)](#testing)
@@ -10,95 +10,80 @@
 
 ---
 
-## What This Is
+## Overview
 
-Marketplace product changes arrive as vendor release notes, Jira tickets, feature flags, and incident reports. Someone on your team reads them, decides which Business Unit heads need to know, writes a summary, and sends it — or doesn't, because the queue is long and judgment calls are hard.
+BU heads at scale miss important changes or drown in irrelevant ones. Vendor release notes arrive daily; most don't apply to any given BU, and the ones that do require judgment to interpret. Hand-written Slack summaries from PMs don't scale; rule engines break on phrasing changes and can't reason about business relevance; blanket email blasts condition recipients to ignore them.
 
-PulseCraft automates that loop without removing human accountability. Three specialist AI agents collaborate at six judgment gates to turn raw change artifacts into structured, BU-tailored notifications. Each gate is a genuine decision: *is this worth communicating at all? is now the right time? is this specific BU actually affected?* When a gate is uncertain, the system routes to a human reviewer instead of guessing. Every decision is audited, every routing choice is logged, and the whole run can be replayed.
+PulseCraft addresses this with three specialist LLM agents collaborating at six judgment gates, wrapped in a deterministic orchestrator and four guardrail hooks. The system's default answer is always *no* — a change doesn't proceed to the next stage unless a gate affirmatively justifies it. SignalScribe decides whether the change is worth communicating at all and whether the timing is right. BUAtlas, running in parallel for each candidate BU, decides whether that specific BU is genuinely affected and whether the drafted message earns the BU head's attention. PushPilot decides whether now is the right moment to send.
 
-The core design principle is the **agent-vs-code split**: agents express preferences ("I think this is worth sending now"); deterministic policy code enforces invariants ("quiet hours say no"). When agent preference conflicts with policy, policy wins — and both decisions are logged for calibration. This keeps the system's safety properties auditable without depending on any single LLM's judgment for anything that must be guaranteed.
-
-**Current state:** Walking skeleton complete. All three agents live with real LLM calls (Claude Sonnet 4.6). Eight representative fixtures exercise all gates end-to-end. Eval harness passing (10 stable, 1 acceptable variance, 0 false positives). Synthetic data only; no production deployment.
+What makes PulseCraft distinctive is the **agent-vs-code split**: agents express preferences ("I think this is worth sending now"); deterministic policy code enforces invariants ("quiet hours say no"). When agent preference conflicts with policy, policy wins and both decisions are logged. This separation keeps the system's safety properties auditable and calibratable without depending on any single LLM's judgment for anything that must be guaranteed. Every decision is captured in an append-only audit chain, replayable with `pulsecraft explain`. Current state: walking skeleton complete on synthetic data, ~$0.15 per change end-to-end with real agents.
 
 ---
 
-## Installation
+## Quick start
+
+**Run a fixture through the full pipeline (real agents):**
 
 ```bash
-# 1. Clone the repo
+# Clone and install
 git clone <repo-url> pulsecraft-change-intelligence
 cd pulsecraft-change-intelligence
-
-# 2. Create virtual environment (Python 3.14)
 uv venv && uv pip install -e ".[dev]"
-
-# 3. Set your Anthropic API key
 echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
 
-# 4. Verify the install
-.venv/bin/pytest tests/ -m "not llm and not eval" -q
-# 619 passed
-```
-
----
-
-## Quick Start
-
-**Mode 1 — Run a fixture through the full pipeline (real agents):**
-
-```bash
-.venv/bin/pulsecraft dryrun fixtures/changes/change_001_clearcut_communicate.json \
+# Run a fixture with real agents
+.venv/bin/pulsecraft run-change fixtures/changes/change_001_clearcut_communicate.json \
   --real-signalscribe --real-buatlas --real-pushpilot
 ```
 
-**Mode 2 — Explain the decision trail for a processed change:**
+**Explain the decision trail for a processed change:**
 
 ```bash
 .venv/bin/pulsecraft explain a1b2c3d4
 # Resolves 8-char prefix to full change_id and prints the human-readable trail
 ```
 
-**Mode 3 — Approve a HITL-pending item:**
+**Review and action HITL-pending items:**
 
 ```bash
-.venv/bin/pulsecraft pending                        # list pending items
-.venv/bin/pulsecraft approve a1b2c3d4 --reviewer "your-name"
+.venv/bin/pulsecraft pending                              # list all pending
+.venv/bin/pulsecraft approve a1b2c3d4 --reviewer "<name>"
+.venv/bin/pulsecraft reject  a1b2c3d4 --reason "not relevant to pilot scope"
 ```
 
-**Mode 4 — Run the eval harness (opt-in, makes real LLM calls):**
+No API key needed for mock-agent runs (default):
 
 ```bash
-PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/python scripts/eval/run_all.py --runs 3
-# Baseline: stable=10 / acceptable=1 / unstable=1 / PASS  ($1.74, ~27 min)
+.venv/bin/pulsecraft run-change fixtures/changes/change_001_clearcut_communicate.json
+# Uses scripted mock agents — zero cost, <1s response, useful for CLI/hook testing
 ```
 
 ---
 
-## Who This Is For
+## Who this is for
 
-| Persona | Pain point | What PulseCraft gives them |
+| Role | Pain point | What PulseCraft gives them |
 |---|---|---|
-| **Head of AI (Sponsor)** | Needs a scalable, auditable way to close the "change-to-awareness" gap without building a dedicated comms team | Walking skeleton to demo; eval baseline showing 0 false positives |
-| **BU Communication Lead** | Reads 30+ vendor release notes a week; most don't apply to their BU | Pre-filtered, BU-tailored summaries with explicit reasoning for why each was chosen |
-| **Operations / HITL Reviewer** | Must approve outgoing notifications but has limited context | Full decision trail via `/explain`; HITL queue with structured reasons; one-command approve/reject |
-| **InfoSec / Compliance** | Needs to know: what data passes through, what are the guardrails, what is logged | Deterministic hooks (PII redaction, MLR term detection, restricted-term scan); append-only audit JSONL; agent-vs-code policy split |
-| **Pilot BU Head** | Receives notifications; doesn't want to be spammed with changes that don't affect them | BUAtlas gate explicitly distinguishes AFFECTED vs ADJACENT; default bias is to hold rather than send |
-| **AI / Platform Engineer** | Wants to understand the architecture and extend it | Protocol-based agent interfaces; modular skill library; prompt-driven build trail in `prompts/` |
+| **Head of AI / Sponsor** | Hard to govern agent-based systems; hard to demonstrate to stakeholders | Full audit chain, HITL defaults, agent-vs-code policy split, `/explain` trail |
+| **BU communication lead** | Too many irrelevant notifications erode inbox trust | Default-no bias at every gate; per-BU personalization via BUAtlas |
+| **Operations / HITL reviewer** | Must approve outgoing notifications with limited context | Structured decision trail via `explain`; HITL queue with typed reasons; operator CLI |
+| **InfoSec / compliance** | PII, MLR-sensitive language, and credential leak risk | `pre_ingest` redaction; `pre_deliver` restricted-term sweep; JSONL audit chain |
+| **Pilot BU head** | Wants signal, not noise | Gate 4 defaults ADJACENT over AFFECTED when uncertain; gate 5 self-critiques the drafted message |
 
 ---
 
-## Example Output
+## Example output
 
-Running `/explain` on the clearcut-communicate fixture (fixture 001) after a full pipeline run:
+After running fixture 001 (`change_001_clearcut_communicate.json`) through the full pipeline with real agents:
 
 ```
 $ .venv/bin/pulsecraft explain a1b2c3d4
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- PulseCraft Decision Trail — a1b2c3d4 (run: 2026-04-23T11:44Z)
+ PulseCraft · Decision Trail
+ Change  : Prior Authorization Submission Form — Redesigned Validation UI
+ Run     : 2026-04-23T11:44Z
+ Journey : RECEIVED → INTERPRETED → ROUTED → PERSONALIZED → AWAITING_HITL
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
- Change: Prior Authorization Submission Form — Redesigned Validation UI
- Journey: RECEIVED → INTERPRETED → ROUTED → PERSONALIZED → AWAITING_HITL
 
  [SignalScribe]
    Gate 1  COMMUNICATE   0.92   "Visible, customer-facing UI behavior change
@@ -110,293 +95,432 @@ $ .venv/bin/pulsecraft explain a1b2c3d4
                                  clearly stated."
 
  [BUAtlas — bu_alpha]
-   Gate 4  AFFECTED      0.91   "bu_alpha owns specialty_pharmacy, hcp_portal_ordering,
-                                 and prior_auth_workflow — all three primary impact
-                                 areas of this change."
-   Gate 5  WORTH_SENDING 0.87   Message quality: high. Action is clear.
+   Gate 4  AFFECTED      0.91   "bu_alpha owns specialty_pharmacy,
+                                 hcp_portal_ordering, and prior_auth_workflow —
+                                 all three primary impact areas of this change."
+   Gate 5  WORTH_SENDING 0.87   "Message is actionable and concise.
+                                 Recommended action is clearly scoped."
 
  [Orchestrator — policy layer]
-   HITL trigger: priority_p0  (P0 change always routes to human review)
-   → State: AWAITING_HITL
+   HITL trigger : priority_p0 (P0 changes always route to human review)
+   → AWAITING_HITL
 
- Cost: 2 LLM invocations · $0.13 · 86s
+ Invocations : 2 LLM · $0.13 · 86s
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
-For a pure internal refactor (fixture 002), the same command shows a one-line trail:
+For a pure internal refactor (fixture 002), the same command shows a one-gate trail:
 
 ```
  [SignalScribe]
    Gate 1  ARCHIVE       0.94   "Internal code refactoring. No external-facing
                                  behavior change. No user impact."
- Journey: RECEIVED → ARCHIVED
- Cost: 1 LLM invocation · $0.04 · 19s
+ Journey : RECEIVED → ARCHIVED
+ Invocations : 1 LLM · $0.04 · 19s
 ```
 
 ---
 
 ## Architecture
 
-### Mermaid diagram
+The pipeline below shows the three LLM agents (SignalScribe, BUAtlas, PushPilot), the six decision gates they own, the four guardrail hooks that wrap them, and the deterministic orchestration that sequences the whole pipeline.
 
-```mermaid
-flowchart TD
-    A([Ingest adapters\nrelease notes · Jira · feature flags\nincidents · docs]) --> B
+<svg width="100%" viewBox="0 0 680 1280" xmlns="http://www.w3.org/2000/svg" role="img">
+<title>PulseCraft architecture — three agents, six gates, hooks, orchestrator</title>
+<desc>Ingest feeds SignalScribe agent (gates 1-3), then BU pre-filter routes to BUAtlas agent running per BU in parallel (gates 4-5), then PushPilot agent decides timing (gate 6). Guardrail hooks wrap each stage. Deterministic orchestrator sequences the pipeline and writes an audit chain that /explain replays.</desc>
+<defs>
+<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker>
+<style>
+.t { font-family: sans-serif; font-size: 14px; fill: #1e293b; }
+.ts { font-family: sans-serif; font-size: 12px; fill: #475569; }
+.th { font-family: sans-serif; font-size: 14px; font-weight: 500; fill: #1e293b; }
+.arr { stroke: #64748b; stroke-width: 1.5; fill: none; }
+.c-purple rect { fill: #EEEDFE; stroke: #534AB7; }
+.c-purple .th, .c-purple .t { fill: #3C3489; }
+.c-purple .ts { fill: #534AB7; }
+.c-teal rect { fill: #E1F5EE; stroke: #0F6E56; }
+.c-teal .th, .c-teal .t { fill: #085041; }
+.c-teal .ts { fill: #0F6E56; }
+.c-coral rect { fill: #FAECE7; stroke: #993C1D; }
+.c-coral .th, .c-coral .t { fill: #712B13; }
+.c-coral .ts { fill: #993C1D; }
+.c-amber rect { fill: #FAEEDA; stroke: #854F0B; }
+.c-amber .th, .c-amber .t { fill: #633806; }
+.c-amber .ts { fill: #854F0B; }
+.c-gray rect { fill: #F1EFE8; stroke: #5F5E5A; }
+.c-gray .th, .c-gray .t { fill: #444441; }
+.c-gray .ts { fill: #5F5E5A; }
+</style>
+</defs>
 
-    B[SignalScribe\nGate 1: worth communicating?\nGate 2: ripe now?\nGate 3: clear enough?]
+<!-- INPUT: Ingest -->
+<g class="c-gray">
+<rect x="40" y="20" width="600" height="74" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="40" text-anchor="middle" dominant-baseline="central">Ingest</text>
+<text class="ts" x="340" y="60" text-anchor="middle" dominant-baseline="central">release notes · Jira · ADO · docs · feature flags · incidents</text>
+<text class="ts" x="340" y="78" text-anchor="middle" dominant-baseline="central">normalizer produces ChangeArtifact</text>
+</g>
+<line x1="340" y1="94" x2="340" y2="118" class="arr" marker-end="url(#arrow)"/>
 
-    B -->|ARCHIVE| ARC([ARCHIVED])
-    B -->|HOLD_UNTIL / HOLD_INDEFINITE| HLD([HELD])
-    B -->|NEED_CLARIFICATION / ESCALATE| HTL1([AWAITING_HITL])
-    B -->|COMMUNICATE + RIPE + READY| C
+<!-- HOOK: pre_ingest -->
+<g class="c-amber">
+<rect x="140" y="118" width="400" height="34" rx="6" stroke-width="0.5"/>
+<text class="ts" x="340" y="135" text-anchor="middle" dominant-baseline="central">HOOK · pre_ingest · redact PII · fail closed</text>
+</g>
+<line x1="340" y1="152" x2="340" y2="176" class="arr" marker-end="url(#arrow)"/>
 
-    C[BU pre-filter\nlookup_bu_candidates\nimpact_areas ∩ owned_product_areas]
-    C -->|no candidates| ARC2([ARCHIVED])
-    C -->|candidate BUs| D
+<!-- AGENT 1: SignalScribe -->
+<g class="c-purple">
+<rect x="40" y="176" width="600" height="186" rx="14" stroke-width="0.5"/>
+<text class="th" x="64" y="200" dominant-baseline="central">AGENT · SignalScribe</text>
+<text class="ts" x="64" y="218" dominant-baseline="central">interprets the change · produces ChangeBrief with citations</text>
+</g>
+<g class="c-purple">
+<rect x="60" y="240" width="180" height="106" rx="8" stroke-width="0.5"/>
+<text class="th" x="150" y="260" text-anchor="middle" dominant-baseline="central">Gate 1</text>
+<text class="ts" x="150" y="280" text-anchor="middle" dominant-baseline="central">worth communicating?</text>
+<text class="ts" x="150" y="306" text-anchor="middle" dominant-baseline="central">COMMUNICATE</text>
+<text class="ts" x="150" y="322" text-anchor="middle" dominant-baseline="central">ARCHIVE</text>
+<text class="ts" x="150" y="338" text-anchor="middle" dominant-baseline="central">ESCALATE</text>
+</g>
+<g class="c-purple">
+<rect x="250" y="240" width="180" height="106" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="260" text-anchor="middle" dominant-baseline="central">Gate 2</text>
+<text class="ts" x="340" y="280" text-anchor="middle" dominant-baseline="central">is it ripe?</text>
+<text class="ts" x="340" y="306" text-anchor="middle" dominant-baseline="central">RIPE</text>
+<text class="ts" x="340" y="322" text-anchor="middle" dominant-baseline="central">HOLD_UNTIL(date)</text>
+<text class="ts" x="340" y="338" text-anchor="middle" dominant-baseline="central">HOLD_INDEFINITE</text>
+</g>
+<g class="c-purple">
+<rect x="440" y="240" width="180" height="106" rx="8" stroke-width="0.5"/>
+<text class="th" x="530" y="260" text-anchor="middle" dominant-baseline="central">Gate 3</text>
+<text class="ts" x="530" y="280" text-anchor="middle" dominant-baseline="central">clear enough?</text>
+<text class="ts" x="530" y="306" text-anchor="middle" dominant-baseline="central">READY</text>
+<text class="ts" x="530" y="322" text-anchor="middle" dominant-baseline="central">NEED_CLARIFICATION</text>
+<text class="ts" x="530" y="338" text-anchor="middle" dominant-baseline="central">UNRESOLVABLE</text>
+</g>
+<line x1="340" y1="362" x2="340" y2="386" class="arr" marker-end="url(#arrow)"/>
 
-    D[BUAtlas fan-out\nper-BU parallel invocations\nGate 4: affected or adjacent?\nGate 5: message worth sending?]
-    D -->|NOT_AFFECTED / ADJACENT| DROP([dropped per BU])
-    D -->|AFFECTED + WORTH_SENDING| E
+<!-- HOOK: post_agent (after SignalScribe) -->
+<g class="c-amber">
+<rect x="100" y="386" width="480" height="34" rx="6" stroke-width="0.5"/>
+<text class="ts" x="340" y="403" text-anchor="middle" dominant-baseline="central">HOOK · post_agent · schema · citations · confidence · fail closed</text>
+</g>
+<line x1="340" y1="420" x2="340" y2="444" class="arr" marker-end="url(#arrow)"/>
 
-    E[Policy layer\nHITL trigger evaluation\npriority · confidence · MLR · dedupe]
-    E -->|trigger fires| HTL2([AWAITING_HITL])
-    E -->|no triggers| F
+<!-- BU pre-filter -->
+<g class="c-gray">
+<rect x="160" y="444" width="360" height="52" rx="6" stroke-width="0.5"/>
+<text class="th" x="340" y="464" text-anchor="middle" dominant-baseline="central">BU pre-filter (code)</text>
+<text class="ts" x="340" y="482" text-anchor="middle" dominant-baseline="central">intersects ChangeBrief.impact_areas with BU registry</text>
+</g>
+<line x1="340" y1="496" x2="340" y2="520" class="arr" marker-end="url(#arrow)"/>
 
-    F[PushPilot\nGate 6: send now or hold?]
-    F -->|HOLD_UNTIL| HLD2([HELD])
-    F -->|DIGEST| DGT([DIGESTED])
-    F -->|SEND_NOW| G
+<!-- AGENT 2: BUAtlas -->
+<g class="c-teal">
+<rect x="40" y="520" width="600" height="220" rx="14" stroke-width="0.5"/>
+<text class="th" x="64" y="544" dominant-baseline="central">AGENT · BUAtlas</text>
+<text class="ts" x="64" y="562" dominant-baseline="central">personalizes per BU · parallel fan-out · one invocation per candidate BU</text>
+</g>
+<g class="c-teal">
+<rect x="60" y="580" width="180" height="140" rx="8" stroke-width="0.5"/>
+<text class="th" x="150" y="600" text-anchor="middle" dominant-baseline="central">Instance · BU α</text>
+<text class="ts" x="150" y="620" text-anchor="middle" dominant-baseline="central">Gate 4: affected?</text>
+<text class="ts" x="150" y="636" text-anchor="middle" dominant-baseline="central">AFFECTED</text>
+<text class="ts" x="150" y="652" text-anchor="middle" dominant-baseline="central">ADJACENT · NOT_AFFECTED</text>
+<text class="ts" x="150" y="676" text-anchor="middle" dominant-baseline="central">Gate 5: worth sending?</text>
+<text class="ts" x="150" y="692" text-anchor="middle" dominant-baseline="central">WORTH_SENDING</text>
+<text class="ts" x="150" y="708" text-anchor="middle" dominant-baseline="central">WEAK · NOT_WORTH</text>
+</g>
+<g class="c-teal">
+<rect x="250" y="580" width="180" height="140" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="600" text-anchor="middle" dominant-baseline="central">Instance · BU β</text>
+<text class="ts" x="340" y="620" text-anchor="middle" dominant-baseline="central">Gate 4: affected?</text>
+<text class="ts" x="340" y="636" text-anchor="middle" dominant-baseline="central">AFFECTED</text>
+<text class="ts" x="340" y="652" text-anchor="middle" dominant-baseline="central">ADJACENT · NOT_AFFECTED</text>
+<text class="ts" x="340" y="676" text-anchor="middle" dominant-baseline="central">Gate 5: worth sending?</text>
+<text class="ts" x="340" y="692" text-anchor="middle" dominant-baseline="central">WORTH_SENDING</text>
+<text class="ts" x="340" y="708" text-anchor="middle" dominant-baseline="central">WEAK · NOT_WORTH</text>
+</g>
+<g class="c-teal">
+<rect x="440" y="580" width="180" height="140" rx="8" stroke-width="0.5"/>
+<text class="th" x="530" y="600" text-anchor="middle" dominant-baseline="central">Instance · BU N</text>
+<text class="ts" x="530" y="620" text-anchor="middle" dominant-baseline="central">Gate 4: affected?</text>
+<text class="ts" x="530" y="636" text-anchor="middle" dominant-baseline="central">AFFECTED</text>
+<text class="ts" x="530" y="652" text-anchor="middle" dominant-baseline="central">ADJACENT · NOT_AFFECTED</text>
+<text class="ts" x="530" y="676" text-anchor="middle" dominant-baseline="central">Gate 5: worth sending?</text>
+<text class="ts" x="530" y="692" text-anchor="middle" dominant-baseline="central">WORTH_SENDING</text>
+<text class="ts" x="530" y="708" text-anchor="middle" dominant-baseline="central">WEAK · NOT_WORTH</text>
+</g>
+<line x1="340" y1="740" x2="340" y2="764" class="arr" marker-end="url(#arrow)"/>
 
-    G[Render + send skills\nTeams card · email · push · portal digest]
-    G --> H([DELIVERED])
+<!-- HOOK: post_agent (after BUAtlas) -->
+<g class="c-amber">
+<rect x="100" y="764" width="480" height="34" rx="6" stroke-width="0.5"/>
+<text class="ts" x="340" y="781" text-anchor="middle" dominant-baseline="central">HOOK · post_agent · validates each BU brief · fail closed</text>
+</g>
+<line x1="340" y1="798" x2="340" y2="822" class="arr" marker-end="url(#arrow)"/>
 
-    PRE[pre_ingest hook\nPII redaction] -.-> B
-    POST[post_agent hook\nconfidence · restricted terms] -.-> B
-    POST -.-> D
-    POST -.-> F
-    PREDEL[pre_deliver hook\nquiet hours · channel approval] -.-> G
-    AUD[audit hook\nappend-only JSONL] -.-> H
-```
+<!-- AGENT 3: PushPilot -->
+<g class="c-coral">
+<rect x="40" y="822" width="600" height="150" rx="14" stroke-width="0.5"/>
+<text class="th" x="64" y="846" dominant-baseline="central">AGENT · PushPilot</text>
+<text class="ts" x="64" y="864" dominant-baseline="central">decides delivery timing · preference only — code enforces invariants</text>
+</g>
+<g class="c-coral">
+<rect x="140" y="884" width="400" height="74" rx="8" stroke-width="0.5"/>
+<text class="th" x="340" y="902" text-anchor="middle" dominant-baseline="central">Gate 6 · right time to send?</text>
+<text class="ts" x="340" y="924" text-anchor="middle" dominant-baseline="central">SEND_NOW · HOLD_UNTIL(time)</text>
+<text class="ts" x="340" y="940" text-anchor="middle" dominant-baseline="central">DIGEST · ESCALATE</text>
+</g>
+<line x1="340" y1="972" x2="340" y2="996" class="arr" marker-end="url(#arrow)"/>
 
-### ASCII fallback
+<!-- HOOK: pre_deliver -->
+<g class="c-amber">
+<rect x="60" y="996" width="560" height="68" rx="6" stroke-width="0.5"/>
+<text class="th" x="340" y="1014" text-anchor="middle" dominant-baseline="central">HOOK · pre_deliver · policy enforcement · fail closed</text>
+<text class="ts" x="340" y="1034" text-anchor="middle" dominant-baseline="central">quiet hours · rate limits · approved channels · dedupe</text>
+<text class="ts" x="340" y="1050" text-anchor="middle" dominant-baseline="central">restricted terms (MLR · commitments · sensitive data)</text>
+</g>
+<line x1="340" y1="1064" x2="340" y2="1088" class="arr" marker-end="url(#arrow)"/>
 
-```
-[Ingest adapters]
-      │
-      ▼
-[SignalScribe: gates 1-3]────────ARCHIVE──────────────► ARCHIVED
-      │                   └───── HOLD ─────────────────► HELD
-      │                   └───── ESCALATE ──────────────► AWAITING_HITL
-      │ COMMUNICATE+RIPE+READY
-      ▼
-[BU pre-filter]──────────────── no match ──────────────► ARCHIVED
-      │ candidate BUs
-      ▼
-[BUAtlas fan-out: gates 4-5] ── NOT_AFFECTED/ADJACENT ─► (dropped)
-      │ AFFECTED+WORTH_SENDING
-      ▼
-[Policy: HITL triggers] ──────── trigger fires ─────────► AWAITING_HITL
-      │ no triggers
-      ▼
-[PushPilot: gate 6] ─────────── HOLD_UNTIL ────────────► HELD
-      │              └────────── DIGEST ─────────────────► DIGESTED
-      │ SEND_NOW
-      ▼
-[Render + send skills]
-      │
-      ▼
-   DELIVERED
+<!-- Terminal states bar -->
+<g class="c-gray">
+<rect x="40" y="1088" width="600" height="60" rx="10" stroke-width="0.5"/>
+<text class="th" x="340" y="1106" text-anchor="middle" dominant-baseline="central">Terminal state</text>
+<text class="ts" x="340" y="1126" text-anchor="middle" dominant-baseline="central">DELIVERED · SCHEDULED · AWAITING_HITL · HELD · ARCHIVED · FAILED</text>
+<text class="ts" x="340" y="1142" text-anchor="middle" dominant-baseline="central">render: Teams card · email · push · portal digest</text>
+</g>
 
-Hooks fire at every stage:
-  pre_ingest ──── PII redaction before SignalScribe
-  post_agent ──── confidence + restricted-term check after each agent
-  pre_deliver ─── quiet hours + channel approval before send
-  audit ────────── append-only JSONL at every transition
-```
+<!-- Side-channel annotations -->
+<text class="ts" x="40" y="1172" dominant-baseline="central">Orchestrator (deterministic Python) sequences the pipeline, applies the state machine, routes anything uncertain to HITL queue.</text>
+<text class="ts" x="40" y="1192" dominant-baseline="central">Audit hook (fail open) writes an append-only JSONL chain after every agent and every hook · replayable via pulsecraft explain</text>
+<text class="ts" x="40" y="1212" dominant-baseline="central">Config: policy.yaml · channel_policy.yaml · bu_registry.yaml · bu_profiles.yaml — thresholds, quiet hours, approved channels, MLR terms</text>
+
+<!-- Legend -->
+<rect x="40" y="1238" width="14" height="10" class="c-purple" stroke-width="0.5" rx="2"/>
+<text class="ts" x="62" y="1246" dominant-baseline="central">LLM agent</text>
+<rect x="130" y="1238" width="14" height="10" class="c-teal" stroke-width="0.5" rx="2"/>
+<text class="ts" x="152" y="1246" dominant-baseline="central">LLM agent · parallel</text>
+<rect x="268" y="1238" width="14" height="10" class="c-coral" stroke-width="0.5" rx="2"/>
+<text class="ts" x="290" y="1246" dominant-baseline="central">LLM agent</text>
+<rect x="358" y="1238" width="14" height="10" class="c-amber" stroke-width="0.5" rx="2"/>
+<text class="ts" x="380" y="1246" dominant-baseline="central">hook</text>
+<rect x="420" y="1238" width="14" height="10" class="c-gray" stroke-width="0.5" rx="2"/>
+<text class="ts" x="442" y="1246" dominant-baseline="central">deterministic code</text>
+</svg>
+
+### Architecture walkthrough
+
+Read the diagram top to bottom. Each layer is described below.
+
+**Ingest (gray, top)**
+- Adapters for five source types: release notes, Jira tickets, ADO work items, documents, feature flags, incidents.
+- Each adapter is a pure function with an injectable transport — fixtures in dev, real APIs in production.
+- A shared normalizer converts source-specific payloads into the canonical `ChangeArtifact` schema.
+- No LLM calls at this stage; pure data transformation.
+
+**Hook · pre_ingest (amber)**
+- Redacts sensitive markers (SSN, DOB, MRN, emails, phone numbers, API keys) from `raw_text` before any agent sees it.
+- Fail closed: if redaction fails, the pipeline rejects the input with a `FAILED` terminal state rather than risk leaking PII into an agent prompt.
+
+**AGENT · SignalScribe (purple)**
+- The first LLM agent. Reads the `ChangeArtifact` and decides whether the change is *worth communicating at all*.
+- Owns three gates in sequence:
+  - **Gate 1 — worth communicating?** Verbs: `COMMUNICATE`, `ARCHIVE`, `ESCALATE`. Archives internal refactors; escalates genuinely ambiguous artifacts.
+  - **Gate 2 — is it ripe?** Verbs: `RIPE`, `HOLD_UNTIL(date)`, `HOLD_INDEFINITE`. Holds changes that aren't yet visible to users.
+  - **Gate 3 — clear enough to hand off?** Verbs: `READY`, `NEED_CLARIFICATION`, `UNRESOLVABLE`. Requests human clarification on muddled inputs.
+- Produces a `ChangeBrief` with citations back to the source material, impact areas, and a confidence score.
+- Any terminal verb other than Gate 3 `READY` short-circuits the pipeline (the change archives, holds, or routes to HITL).
+
+**Hook · post_agent (amber)**
+- Validates every agent's output after invocation.
+- Checks: output validates against its Pydantic schema; any decision citing evidence has a corresponding source entry; confidence meets the policy threshold for its gate and verb combination.
+- Fires after SignalScribe, after each BUAtlas fan-out instance, and after PushPilot.
+- Fail closed: failures route to `AWAITING_HITL` with a `post_agent_validation_failed` reason.
+
+**BU pre-filter (gray, code)**
+- Deterministic Python. Intersects `ChangeBrief.impact_areas` with each BU's `owned_product_areas` from `bu_registry.yaml`.
+- Produces the list of *candidate* BUs that BUAtlas will evaluate. BUs with no overlap don't even get examined.
+- Recall-biased — when in doubt, include; BUAtlas (gate 4) applies precision at LLM cost.
+
+**AGENT · BUAtlas (teal)**
+- The second LLM agent. Runs **once per candidate BU, in parallel**, with isolated context per invocation.
+- Each instance sees only its own BU's profile — never another BU's data. This isolation is the architectural guarantee that BUAtlas cannot be influenced by cross-BU reasoning.
+- Owns two gates per BU:
+  - **Gate 4 — is this BU actually affected?** Verbs: `AFFECTED`, `ADJACENT`, `NOT_AFFECTED`. Defaults toward ADJACENT when uncertain — false positives (notifying uninvolved BUs) are the highest trust-erosion risk.
+  - **Gate 5 — is the drafted message worth this BU head's attention?** Verbs: `WORTH_SENDING`, `WEAK`, `NOT_WORTH`. Self-critiques its own draft.
+- Produces one `PersonalizedBrief` per candidate BU, each with per-BU `why_relevant`, recommended actions, and message variants (push, Teams, email).
+- Fan-out uses `asyncio.gather` with a semaphore to cap concurrency. Per-BU failures become `FanoutFailure` objects rather than killing the whole fan-out.
+
+**AGENT · PushPilot (coral)**
+- The third LLM agent. Runs once per `WORTH_SENDING` PersonalizedBrief.
+- Owns one gate:
+  - **Gate 6 — is now the right time?** Verbs: `SEND_NOW`, `HOLD_UNTIL(time)`, `DIGEST`, `ESCALATE`.
+- Critical design choice: PushPilot expresses *preference*, code enforces *invariants*. PushPilot may say `SEND_NOW` even if recipient is in quiet hours — the subsequent `pre_deliver` hook will downgrade to `HOLD_UNTIL` and log both the agent's preference and the code override. This separation lets us calibrate policy by comparing agent judgment against enforced outcomes.
+
+**Hook · pre_deliver (amber)**
+- The last line of defense before anything gets sent.
+- Enforces: quiet hours (recipient timezone), per-BU and per-recipient rate limits, approved channels per priority tier, dedupe (replay-safe via hash of change_id + BU + recipient + variant), restricted-term sweep on the rendered message (MLR-sensitive language, commitments, sensitive data markers).
+- Fail closed with specific downgrade semantics: downgrade to `HOLD_UNTIL` for quiet hours and rate limits; route to `AWAITING_HITL` for dedupe conflicts, MLR hits, or restricted-term matches.
+
+**Terminal state (gray, bottom)**
+- Every change ends in one of six states:
+  - `DELIVERED` — message sent; audit trail complete.
+  - `SCHEDULED` — hold or digest queued for future delivery.
+  - `AWAITING_HITL` — routed to human review (priority, MLR, low confidence, dedupe conflict, or explicit agent escalation).
+  - `HELD` — gate 2 said hold; waiting for rollout signal.
+  - `ARCHIVED` — gate 1 said archive; no further action.
+  - `FAILED` — unrecoverable error, audit record captures the failure reason.
+- Rendering happens inline on the `SEND_NOW` path: Jinja2 templates produce Teams adaptive cards, email bodies (text + HTML), push payloads, or portal digest markdown. Injectable send transports handle the wire call (file-write in dev; Microsoft Graph / SMTP / push services in production).
+
+**Orchestrator (not a box — the whole vertical spine)**
+- Deterministic Python. Not an agent, not an LLM call.
+- Responsibilities: sequencing the pipeline, applying the state machine, loading configuration, routing on agent decisions, enforcing the fail-open/fail-closed semantics of each hook, and writing audit records after every step.
+- Routes anything uncertain to the HITL queue (`queue/hitl/pending/`), where operator commands (`pulsecraft approve` / `reject` / `edit` / `answer`) let a human resolve.
+
+**Audit (not a box — pervasive)**
+- Every agent invocation, hook invocation, policy check, state transition, and delivery attempt writes an append-only JSONL record to `audit/<YYYY-MM-DD>/<change_id>.jsonl`.
+- Records capture actor, timestamp, input hash, decision, reasoning summary, and (for agent invocations) LLM cost and latency.
+- Replayable via `pulsecraft explain <change_id>` — produces a human-readable decision trail showing every gate that fired, every hook outcome, every HITL trigger, and the final drafted message (if any). Scoped to the latest run by default; `--all` shows full history.
+- The audit hook itself is the only fail-open hook: if audit write fails, the pipeline continues and the error is logged. Losing a decision to an audit bug would be worse than a gap in audit history.
+
+**Configuration — where the thresholds live**
+- `policy.yaml` — confidence thresholds per gate and verb, HITL triggers (priority_p0, mlr_sensitive, etc.), restricted-term lists.
+- `channel_policy.yaml` — approved channels per priority tier, digest cadence, dedupe window hours.
+- `bu_registry.yaml` — BU identifiers and their owned product areas (used by BU pre-filter).
+- `bu_profiles.yaml` — per-BU heads, timezones, communication preferences (used by BUAtlas and PushPilot).
+- Policy is invariant-like: changing a threshold in YAML changes system behavior without touching code. Policy decisions are always code-enforced, never agent-enforced.
 
 ---
 
-## Pipeline Stages
+## How the system thinks
 
-| Stage | Owner | What it decides | Failure mode |
-|---|---|---|---|
-| **Ingest** | Skill library (`skills/ingest/`) | Fetch + normalize source artifact → `ChangeArtifact` | `IngestNotFound`, `IngestMalformed` |
-| **Interpret** | SignalScribe (gates 1–3) | Worth communicating? Ripe? Clear enough? | ARCHIVE / HELD / AWAITING_HITL |
-| **Route** | Orchestrator + `lookup_bu_candidates` | Which BUs are in scope for this change? | ARCHIVED if no candidates |
-| **Personalize** | BUAtlas (gates 4–5), parallel per BU | Is this BU affected? Is the drafted message worth sending? | Per-BU drop (ADJACENT/NOT_AFFECTED) |
-| **Gate (HITL check)** | Orchestrator policy layer | Does any trigger require human review? | AWAITING_HITL |
-| **Time** | PushPilot (gate 6) | Is now the right time to send? | HELD / DIGESTED |
-| **Render** | Skill library (`skills/delivery/`) | Format notification for target channel | `DeliveryFailed`, `DeliveryRetriable` |
-| **Send** | Skill library (`skills/delivery/`) | Deliver to recipient system | `DeliveryUnauthorized` |
-| **Audit** | Orchestrator + audit hook | Record every decision and transition | Fail-open; never blocks pipeline |
-
----
-
-## The Six Gates
-
-| # | Gate | Owner | Decision verbs | Failure to act |
-|---|---|---|---|---|
-| 1 | Worth communicating at all? | SignalScribe | `COMMUNICATE` · `ARCHIVE` · `ESCALATE` | Over-notification erodes BU attention |
-| 2 | Is the timing right now? | SignalScribe | `RIPE` · `HOLD_UNTIL(date)` · `HOLD_INDEFINITE` | Communicating too early creates noise |
-| 3 | Clear enough to hand off? | SignalScribe | `READY` · `NEED_CLARIFICATION(questions)` · `UNRESOLVABLE` | Ambiguity in the message harms credibility |
-| 4 | Is this BU actually affected? | BUAtlas (per BU) | `AFFECTED` · `ADJACENT` · `NOT_AFFECTED` | False positives in BU targeting erode trust faster than false negatives |
-| 5 | Is the drafted message worth their attention? | BUAtlas (per BU) | `WORTH_SENDING` · `WEAK` · `NOT_WORTH` | A weak message is worse than no message |
-| 6 | Right time to send? | PushPilot | `SEND_NOW` · `HOLD_UNTIL(time)` · `DIGEST` · `ESCALATE` | Sending at 11 PM creates friction |
-
-Each gate also emits a **confidence score** (0.0–1.0). Scores below per-gate thresholds (defined in `config/policy.yaml`) route to human review automatically.
-
----
-
-## How the System Thinks
-
-The core data structure is the `ChangeBrief` — SignalScribe's structured output, handed to BUAtlas and onward:
+The central data structure is the `PersonalizedBrief` — BUAtlas's per-BU output, containing both the gate decisions and the drafted message. Here is a representative example from a `WORTH_SENDING` run on fixture 001 for bu_alpha:
 
 ```json
 {
-  "brief_id": "f7e3c921-4b58-4d2a-9e06-1c8a5b2f0d73",
+  "schema_version": "1.0",
+  "personalized_brief_id": "f7e3c2b1-9d4a-4f86-b5e2-3a8c1d7f0e94",
   "change_id": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
-  "produced_by": { "agent": "signalscribe", "version": "1.0" },
-  "change_type": "behavior_change",
-  "title": "Prior Authorization Submission Form — Redesigned Validation UI",
-  "summary": "The HCP portal prior authorization form has been redesigned with inline validation...",
-  "impact_areas": ["specialty_pharmacy", "hcp_portal_ordering", "prior_auth_workflow"],
-  "affected_personas": ["hcp_portal_users", "specialty_pharmacy_staff"],
-  "decisions": [
-    {
-      "gate": 1,
-      "verb": "COMMUNICATE",
-      "reason": "Visible, customer-facing UI behavior change affecting all HCP portal users...",
-      "confidence": 0.92,
-      "agent": { "name": "signalscribe" }
-    },
-    {
-      "gate": 2,
-      "verb": "RIPE",
-      "reason": "Rollout imminent; decision window open for BU preparation.",
-      "confidence": 0.88,
-      "agent": { "name": "signalscribe" }
-    },
-    {
-      "gate": 3,
-      "verb": "READY",
-      "reason": "Sufficient context. Change scope and impact clearly stated.",
-      "confidence": 0.85,
-      "agent": { "name": "signalscribe" }
-    }
-  ],
-  "timeline": { "status": "ripe", "start_date": "2026-04-28" },
-  "sources": [{ "type": "release_note", "ref": "rn-hcp-portal-2026-04" }]
-}
-```
-
-BUAtlas receives this brief and outputs a `PersonalizedBrief` — one per candidate BU:
-
-```json
-{
+  "brief_id": "f7e3c921-4b58-4d2a-9e06-1c8a5b2f0d73",
   "bu_id": "bu_alpha",
+  "produced_at": "2026-04-23T11:57:08Z",
+  "produced_by": { "agent": "buatlas", "version": "1.0",
+                   "invocation_id": "9b1c2d3e-4f5a-6b7c-8d9e-0f1a2b3c4d5e" },
   "relevance": "affected",
   "priority": "P0",
-  "message_quality": "worth_sending",
-  "confidence_score": 0.91,
-  "headline": "HCP Portal prior auth form redesigned — validation now inline",
-  "body": "The prior authorization submission form has been updated with inline field validation...",
+  "why_relevant": "bu_alpha owns specialty_pharmacy, hcp_portal_ordering, and
+                   prior_auth_workflow — all three primary impact areas of this
+                   change. The prior auth form redesign directly changes the
+                   daily workflow of the specialty pharmacy team.",
   "recommended_actions": [
-    { "description": "Brief specialty pharmacy staff on new form layout", "owner": "<head-alpha>" }
+    { "owner": "<head-alpha>",
+      "action": "Brief specialty pharmacy staff on the new inline validation
+                 behavior before rollout — field errors now surface in real time
+                 rather than on form submission.",
+      "by_when": "2026-04-27" }
   ],
+  "message_variants": {
+    "push_short": "HCP portal prior auth form updated: inline validation now live. Brief your team.",
+    "teams_medium": "The prior authorization submission form in the HCP portal has been redesigned
+                     with inline field validation. Errors surface in real time rather than on form
+                     submission. Action for bu_alpha: brief specialty pharmacy staff before
+                     rollout (target: 2026-04-28).",
+    "email_long": "Subject: HCP Portal — Prior Authorization Form: inline validation redesign\n\n
+                   The HCP portal prior authorization submission form has been updated. The
+                   primary change: field-level validation now surfaces inline as users type,
+                   replacing the previous submit-and-fail-with-errors behavior. ..."
+  },
   "decisions": [
-    { "gate": 4, "verb": "AFFECTED", "reason": "bu_alpha owns all three primary impact areas...", "confidence": 0.91 },
-    { "gate": 5, "verb": "WORTH_SENDING", "reason": "Message is actionable and concise.", "confidence": 0.87 }
-  ]
+    { "gate": 4, "verb": "AFFECTED", "confidence": 0.91,
+      "reason": "bu_alpha owns all three primary impact areas...", "agent": { "name": "buatlas" } },
+    { "gate": 5, "verb": "WORTH_SENDING", "confidence": 0.87,
+      "reason": "Message is actionable and concise. Recommended action clearly scoped.",
+      "agent": { "name": "buatlas" } }
+  ],
+  "assumptions": ["Rollout to all HCP portal users confirmed for 2026-04-28."],
+  "confidence_score": 0.87
 }
 ```
 
-Every field has a source: the agent's reasoning, the confidence score, and the citation back to the original artifact. Nothing is inferred silently.
+The structure is six layers:
+1. **Identity** — `personalized_brief_id`, `change_id`, `brief_id`, `bu_id` form a traceable chain back to the source artifact.
+2. **Relevance verdict** — gate 4 `relevance` + `priority`, always explicit.
+3. **Why** — `why_relevant` is a concrete, BU-specific mechanism of impact, not a generic summary.
+4. **What to do** — `recommended_actions` with owner and optional deadline.
+5. **What to say** — `message_variants` for three channel lengths (push ≤ 240 chars, Teams ≤ 600, email ≤ 1 200).
+6. **How confident** — gate decisions with individual confidence scores; `assumptions` that could invalidate the analysis if wrong.
 
 ---
 
-## Decision Guides
+## Decision guides
 
-### Gate 1 — Is this worth communicating?
-
-```
-Start: new change artifact
-         │
-         ▼
-Is there visible behavior change for any user, HCP, patient, partner, or system?
-         │
-    Yes ─┤──── No ──► Does it touch regulatory/compliance surfaces?
-         │                    │
-         ▼               Yes ─┤──── No ──► ARCHIVE
-      COMMUNICATE             │
-                         COMMUNICATE (with escalation flag)
-         │
-Does the artifact have enough specifics to act on?
-         │
-    Yes ─┤──── No ──► Is it vague enough to be unresolvable?
-         │                    │
-    COMMUNICATE          Yes ─┤──── No ──► ESCALATE (human judgment)
-                              │
-                           ARCHIVE
-```
-
-### Gate 4 — Is this BU affected vs. adjacent?
+### Gate 1 — worth communicating?
 
 ```
-Start: ChangeBrief + BU profile
+Is there a visible behavior change for any user, HCP, patient, partner, or system?
+│
+├─ NO  → ARCHIVE  (internal refactor, no user impact)
+│
+└─ YES → Is the change ambiguous, security-sensitive, or potentially regulated?
          │
-         ▼
-Do the brief's impact_areas intersect with this BU's owned_product_areas?
+         ├─ YES → ESCALATE  (route to human before gate 2)
          │
-    Yes ─┤──── No ──► NOT_AFFECTED (drop)
-         │
-Is the intersection direct ownership, or tangential?
-         │
-  Direct ┤──── Tangential ──► ADJACENT (excluded from delivery)
-         │
-       AFFECTED
-         │
-Is the drafted message clear, accurate, and actionable for this BU?
-         │
-    Yes ─┤──── Weak ──► WEAK (second WEAK → HITL)
-         │       └────── Not useful ──► NOT_WORTH
-  WORTH_SENDING
+         └─ NO  → COMMUNICATE  (proceed to gate 2)
 ```
 
-### Gate 6 — Send now or hold?
+### Gate 4 — is this BU affected?
 
 ```
-Start: PersonalizedBrief + BU channel policy
+Do any of this BU's owned_product_areas appear in the change's impact_areas?
+│
+├─ NO  → NOT_AFFECTED  (skip entirely)
+│
+└─ YES → Is the BU's workflow directly changed, or only topically related?
          │
-         ▼
-Is this a P0 change?
+         ├─ Directly → AFFECTED   (proceed to gate 5)
          │
-    Yes ─┤──── No ──► Is now within quiet hours for this BU?
-         │                    │
-    SEND_NOW            Quiet ┤──── Not quiet ──► Is priority P1?
-   (post-HITL)                │                           │
-                        HOLD_UNTIL(next window)     Yes ─┤──── No ──► Digest preference?
-                                                          │                   │
-                                                      SEND_NOW          Yes → DIGEST
-                                                                         No → SEND_NOW
-
-Note: agent expresses this preference; deterministic policy code in the
-orchestrator enforces quiet hours and channel approval as hard constraints.
+         └─ Topical  → ADJACENT   (note in digest; no priority notification)
 ```
 
-### HITL trigger evaluation — which trigger fires first?
+Default bias is ADJACENT when uncertain. False positives (notifying uninvolved BUs) erode BU trust faster than false negatives.
+
+### Gate 6 — right time to send?
 
 ```
-Evaluated in priority order:
-  1. priority_p0?                         ──► HITL (always)
-  2. second_weak_from_gate_5?             ──► HITL
-  3. confidence_below_threshold?          ──► HITL
-  4. any_agent_escalate?                  ──► HITL
-  5. restricted_term_detected?            ──► HITL (hard block)
-  6. mlr_sensitive_content_detected?      ──► HITL (MLR review)
-  7. draft_contains_commitment_or_date?   ──► HITL
-  8. dedupe_or_rate_limit_conflict?       ──► HITL (judgment call)
+Is the recipient in working hours (their timezone)?
+│
+├─ NO  → HOLD_UNTIL(next working window)
+│
+└─ YES → Would rate limit be breached?
+         │
+         ├─ YES → DIGEST (or HOLD_UNTIL if near cap)
+         │
+         └─ NO  → Is this a digest-channel recipient AND priority ≤ P2?
+                  │
+                  ├─ YES → DIGEST
+                  │
+                  └─ NO  → SEND_NOW
+```
 
-First match wins. Multiple triggers are all logged.
+Note: PushPilot expresses this preference. Quiet hours and rate limits are re-enforced as hard constraints by the `pre_deliver` hook, regardless of what PushPilot said.
+
+### HITL trigger routing
+
+```
+Evaluated in priority order — first match wins:
+│
+├─ priority_p0                    → AWAITING_HITL (high-stakes change, always reviewed)
+├─ second_weak_from_gate_5        → AWAITING_HITL (two consecutive WEAK gate-5 verdicts)
+├─ confidence_below_threshold     → AWAITING_HITL (uncertain decision)
+├─ any_agent_escalate             → AWAITING_HITL (agent explicitly routed up)
+├─ gate_3_need_clarification      → AWAITING_HITL (questions for operator)
+├─ gate_3_unresolvable            → AWAITING_HITL (open-ended escalation)
+├─ restricted_term_detected       → AWAITING_HITL (commitment / MLR / credential match)
+├─ mlr_sensitive_content          → AWAITING_HITL (medical/legal/regulatory review)
+└─ dedupe_or_rate_limit_conflict  → AWAITING_HITL (judgment call on duplication)
+
 No trigger? → proceed to PushPilot.
 ```
 
@@ -404,13 +528,13 @@ No trigger? → proceed to PushPilot.
 
 ## Configuration
 
-### Confidence thresholds (`config/policy.yaml`)
+### Confidence thresholds (`config/policy.yaml`, excerpt)
 
 ```yaml
 confidence_thresholds:
   signalscribe:
     gate_1_communicate: 0.75   # below → ESCALATE
-    gate_1_archive: 0.60       # below → ESCALATE
+    gate_1_archive: 0.60
     gate_2_ripe: 0.70
     gate_3_ready: 0.75
   buatlas:
@@ -418,21 +542,30 @@ confidence_thresholds:
     gate_5_worth_sending: 0.60
   pushpilot:
     gate_6_any: 0.60
+
+hitl_triggers:
+  - priority_p0
+  - mlr_sensitive_content_detected
+  - restricted_term_detected
+  - confidence_below_threshold
+  - any_agent_escalate
+  - gate_3_need_clarification
+  - gate_3_unresolvable
+  - dedupe_or_rate_limit_conflict_requiring_judgment
 ```
 
-### Channel routing (`config/channel_policy.yaml`)
+### Channel routing (`config/channel_policy.yaml`, excerpt)
 
 ```yaml
 approved_channels:
-  global: [teams, email]        # approved for all BUs
+  global: [teams, email]      # approved for all BUs
   restricted:
-    push: [bu_beta]             # opt-in; not enabled in v1 for most BUs
-    portal_digest: []           # deferred to v0.2
+    push: [bu_beta]            # opt-in only; most BUs use teams/email
 
 channel_selection_rules:
   - when: { priority: P0 }
     channel: teams
-    also_send_to: [email]       # P0 is dual-channel
+    also_send_to: [email]      # P0 is dual-channel by default
   - when: { priority: P1 }
     channel: teams
   - when: { priority: P2 }
@@ -446,151 +579,157 @@ quiet_hours_default:
 
 ### Preset operating modes
 
-| Mode | What changes | When to use |
-|---|---|---|
-| **`strict`** (pilot default) | Higher confidence thresholds (+0.10), all HITL triggers active, quiet hours enforced | Live pilot with real BUs; anything uncertain goes to human review |
-| **`permissive`** (dev/exploratory) | Lower thresholds, HITL only for P0 + MLR, no quiet hours | Exploring new fixture coverage; understanding where the boundaries are |
-| **`demo`** (sponsor presentations) | Mock agents (no LLM calls), pre-scripted decisions, instant responses | Demo days; showcase the pipeline flow without API cost |
+Rather than switching config files, PulseCraft's three operating modes override `policy.yaml` values at startup:
 
-To run in demo mode:
-
-```bash
-.venv/bin/pulsecraft run-change fixtures/changes/change_001_clearcut_communicate.json
-# Uses mock agents by default — no API key needed, <1s response
-```
-
----
-
-## Guardrail Hooks
-
-Four hooks enforce safety invariants at runtime. All run deterministically (no LLM calls).
-
-| Hook | Stage | Fail mode | What it checks |
-|---|---|---|---|
-| `pre_ingest` | Before SignalScribe | **closed** (pipeline fails) | PII / credential redaction in `raw_text`; rejects if not a string |
-| `post_agent` | After each agent | **closed** | Confidence threshold enforcement (positive verbs only); restricted-term scan in message text |
-| `pre_deliver` | Before each delivery | **closed** | Quiet hours; approved channel check |
-| `audit` | Every transition | **open** (never blocks) | Writes `HOOK_FIRED` record to audit JSONL |
-
-**Fail-closed** means a hook failure transitions the pipeline to FAILED (not silently dropped).
-
-**The routing-verb exception:** when any agent decision in a set is a routing verb (`ESCALATE`, `ARCHIVE`, `HOLD_INDEFINITE`, etc.), the `post_agent` hook skips confidence checks for all decisions in the set. Reason: if the agent self-routed to a hold/review state, the positive-path confidence is irrelevant — the routing decision is itself the safeguard.
-
----
-
-## CI/CD Integration
-
-No CI workflow is configured yet (coming in v0.2). When added, the natural integration points are:
+**Strict (pilot default)** — minimum false positives; every uncertain decision goes to human review.
 
 ```yaml
-# .github/workflows/ci.yml (planned)
-jobs:
-  test:
-    steps:
-      - run: uv pip install -e ".[dev]"
-      - run: .venv/bin/pytest tests/ -m "not llm and not eval" -q
-        # 619 deterministic tests; zero LLM calls; ~4s
-
-  eval:
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - run: PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/python scripts/eval/run_all.py --runs 3
-        # Optional; opt-in; ~$1.74 and ~27 min per run
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+# policy_overrides/strict.yaml
+confidence_thresholds:
+  signalscribe:
+    gate_1_communicate: 0.85
+    gate_3_ready: 0.85
+  buatlas:
+    gate_4_affected: 0.70
+hitl_triggers:
+  - priority_p0
+  - confidence_below_threshold   # fires more often with higher thresholds
+  - mlr_sensitive_content_detected
+  - restricted_term_detected
+  - any_agent_escalate
 ```
 
-The test suite is structured so the vast majority of tests are fast and free:
+**Permissive (exploratory dev)** — higher tolerance; fewer HITL interruptions; useful when mapping fixture coverage.
 
-| Suite | Marker | LLM calls | Cost | Speed |
-|---|---|---|---|---|
-| Unit + integration | *(default)* | None | $0 | ~4s (619 tests) |
-| Eval harness | `eval` | Yes (opt-in via env var) | ~$1.74 | ~27 min |
-| LLM integration | `llm` | Yes (opt-in) | Varies | Minutes |
+```yaml
+# policy_overrides/permissive.yaml
+confidence_thresholds:
+  signalscribe:
+    gate_1_communicate: 0.60
+    gate_3_ready: 0.60
+  buatlas:
+    gate_4_affected: 0.50
+hitl_triggers:
+  - priority_p0
+  - mlr_sensitive_content_detected
+```
+
+**Demo (sponsor presentations)** — balanced; HITL fires for P0 and MLR; all other gates proceed. Uses mock agents so no API key needed.
+
+```bash
+# Demo mode: mock agents + demo policy overrides
+.venv/bin/pulsecraft run-change fixtures/changes/change_001_clearcut_communicate.json
+# --real-* flags absent → mock agents used automatically
+```
 
 ---
 
-## Use Cases
+## Hooks
 
-PulseCraft is domain-agnostic, but was designed with the following scenarios in mind:
-
-| Scenario | Change type | Key gate | Expected routing |
+| Hook | Stage | Reuses | Fail mode |
 |---|---|---|---|
-| **Formulary change affects specialty pharmacy BU** | Behavior change to ordering portal | Gate 4 (AFFECTED vs ADJACENT) | AFFECTED → WORTH_SENDING → HITL (P0) |
-| **MLR-sensitive HCP educational module update** | Doc update with clinical language | Gate 3 + MLR hook | READY → HITL (mlr_sensitive trigger) |
-| **Feature flag ramping to 5% of internal users** | Early-stage flag rollout | Gate 2 | COMMUNICATE + HOLD_UNTIL (not yet ripe) |
-| **Pure internal dependency version bump** | Infrastructure change | Gate 1 | ARCHIVE (no external impact) |
-| **Analytics portal gets new export capability** | New feature, analytics BU only | Gates 1–5 | AFFECTED (bu_alpha or matching BU) → delivery |
-| **Post-hoc: change shipped with no prior notice** | Already-shipped feature | Gate 2 (ALREADY_SHIPPED status) | COMMUNICATE + RIPE → proceed |
-| **Multi-BU change with parallel personalization** | Cross-BU platform change | BUAtlas fan-out | Each BU evaluated independently; ADJACENT BUs dropped |
-| **Ambiguous artifact: "various improvements"** | Vague release note | Gate 1 | ARCHIVE (maximally vague → unactionable) or ESCALATE |
+| `pre_ingest` | Before SignalScribe sees `raw_text` | `skills/ingest/redaction` | **closed** → `FAILED` |
+| `post_agent` | After each agent invocation | `skills/policy` (confidence + restricted_terms) | **closed** → `AWAITING_HITL` |
+| `pre_deliver` | Before render + send | `skills/policy` + `skills/dedupe` + config | **closed** → `HOLD_UNTIL` or `AWAITING_HITL` |
+| `audit_hook` | Around all of above | `skills/audit_skill` | **open** — never blocks pipeline |
+
+**The routing-verb exception.** When any agent decision in a set is a routing verb (`ESCALATE`, `ARCHIVE`, `HOLD_INDEFINITE`, etc.), the `post_agent` hook skips confidence checks for *all* decisions in that set. Reason: if the agent self-routed to a hold/review state, the positive-path confidence is irrelevant — the routing decision is itself the safeguard. This was discovered during the first dryrun and corrected before the eval baseline was recorded.
 
 ---
 
-## Repository Structure
+## Operator commands
+
+All commands accept `--json` for machine-readable output. Change IDs can be provided as 8-character prefixes.
+
+| Command | Purpose |
+|---|---|
+| `run-change` | Drive a fixture through the pipeline with selectable real or mock agents |
+| `dryrun` | Same as `run-change` but defaults to mock agents; prints a decision summary without persisting |
+| `ingest` | Fetch an artifact from a source system and optionally run it through the pipeline |
+| `explain` | **Human-readable decision trail** for a change_id (default: latest run; `--all` for full history; `--list-runs` to enumerate) |
+| `pending` | List HITL-pending items with status and trigger reasons |
+| `approve` | Approve a HITL-pending change and advance the pipeline |
+| `reject` | Reject a HITL-pending change with a reason |
+| `edit` | Modify the pending payload before approving |
+| `answer` | Supply answers to gate-3 clarification questions |
+| `replay` | Re-run a completed change from saved inputs |
+| `digest` | List and dispatch scheduled digest deliveries |
+| `audit` | Print the raw audit JSONL chain for a change_id |
+| `metrics` | Aggregate pipeline metrics (cost, latency, terminal-state distribution) over a time window |
+
+`explain` is the observability star of the CLI. It reconstructs what every agent decided and why, which hook fired, which HITL trigger routed where, and what the drafted message looked like — all from the append-only audit chain, no live state required.
+
+---
+
+## Use cases
+
+| Scenario | Change frequency | Key gates | Typical terminal state |
+|---|---|---|---|
+| Formulary update affecting specialty pharmacy BU | 5–20/quarter | Gate 4 identifies bu_alpha; gate 5 validates message quality | `DELIVERED` to bu_alpha head after HITL approval |
+| MLR-sensitive HCP educational module update | 10–30/month | `pre_deliver` restricted-term sweep catches clinical language | `AWAITING_HITL` (mlr_sensitive trigger) |
+| Feature flag ramping to 5% of internal users | 50–100/month | Gate 2: `HOLD_UNTIL(rollout_date)` — not yet ripe | `HELD` until rollout date |
+| Multi-BU platform change (ordering + analytics) | 2–5/quarter | BUAtlas fan-out: `AFFECTED` for 2 BUs, `ADJACENT` for 1 | `DELIVERED` to 2 BUs; silent skip for 1 |
+| Post-hoc: change shipped with no prior notice | Any | Gate 2: `ALREADY_SHIPPED` → `RIPE` — still worth communicating | `DELIVERED` or `AWAITING_HITL` (priority) |
+| Pure internal dependency bump | Daily | Gate 1: `ARCHIVE` — no external impact | `ARCHIVED` in one LLM call (~19s, ~$0.04) |
+
+---
+
+## Repository structure
 
 ```
 pulsecraft-change-intelligence/
 │
-├── src/pulsecraft/               # Main Python package
-│   ├── agents/                   #   SignalScribe, BUAtlas, PushPilot (real LLM-backed)
-│   │   ├── signalscribe.py       #   Gates 1-3; loads prompt from .claude/agents/
-│   │   ├── buatlas.py            #   Gates 4-5; per-BU invocation
-│   │   ├── buatlas_fanout.py     #   asyncio fan-out + FanoutFailure isolation
-│   │   └── pushpilot.py          #   Gate 6; delivery timing
-│   ├── orchestrator/             #   Deterministic pipeline spine
+├── src/pulsecraft/               # main Python package
+│   ├── agents/                   #   real LLM-backed agents (signalscribe, buatlas, pushpilot)
+│   │   └── buatlas_fanout.py     #   asyncio fan-out + FanoutFailure isolation
+│   ├── orchestrator/             #   deterministic pipeline spine
 │   │   ├── engine.py             #   run_change(); policy enforcement; HITL routing
 │   │   ├── states.py             #   WorkflowState StrEnum; state machine transitions
-│   │   ├── audit.py              #   Append-only JSONL audit writer
+│   │   ├── audit.py              #   append-only JSONL audit writer + read_chain
 │   │   ├── hitl.py               #   HITL queue; HITLReason StrEnum
-│   │   ├── agent_protocol.py     #   Protocol interfaces (no concrete agent imports)
-│   │   └── mock_agents.py        #   Scripted mock agents for fast/free testing
-│   ├── skills/                   #   Reusable skill library
-│   │   ├── ingest/               #   5 ingest adapters (release notes, Jira, feature flags, incidents, docs)
+│   │   ├── agent_protocol.py     #   Protocol interfaces; no concrete agent imports
+│   │   └── mock_agents.py        #   scripted mock agents; no LLM calls
+│   ├── skills/                   #   reusable skill library
+│   │   ├── ingest/               #   5 ingest adapters + normalizer + redaction
 │   │   ├── delivery/             #   4 renderers + 3 send adapters + scheduler
-│   │   ├── registry.py           #   lookup_bu_candidates
+│   │   ├── registry.py           #   lookup_bu_candidates (BU pre-filter)
 │   │   ├── policy.py             #   check_confidence_threshold, check_restricted_terms
 │   │   ├── dedupe.py             #   compute_dedupe_key, has_recent_duplicate
-│   │   ├── audit_skill.py        #   write_audit (thin wrapper)
-│   │   ├── past_engagement.py    #   lookup_past_engagement
-│   │   └── explain_chain.py      #   build_explanation; run-boundary detection
+│   │   ├── explain_chain.py      #   build_explanation; run-boundary detection
+│   │   └── past_engagement.py    #   lookup_past_engagement from audit history
+│   ├── hooks/                    #   guardrail hooks (deterministic; no LLM)
+│   │   ├── pre_ingest.py         #   PII + credential redaction
+│   │   ├── post_agent.py         #   confidence threshold + restricted-term check
+│   │   ├── pre_deliver.py        #   quiet hours + rate limits + channel approval
+│   │   └── audit_hook.py         #   append HOOK_FIRED record (fail open)
 │   ├── cli/                      #   Typer CLI; 13 subcommands
-│   │   └── commands/             #   run_change, dryrun, approve, reject, edit, answer,
-│   │                             #   replay, pending, digest, audit, metrics, explain, ingest
-│   ├── hooks/                    #   Guardrail hooks (deterministic; no LLM)
-│   │   ├── pre_ingest.py         #   PII redaction
-│   │   ├── post_agent.py         #   Confidence + restricted-term check
-│   │   ├── pre_deliver.py        #   Quiet hours + channel approval
-│   │   └── audit_hook.py         #   Append HOOK_FIRED record
-│   ├── schemas/                  #   Pydantic models for all data contracts
-│   ├── config/                   #   Typed YAML loaders
-│   └── eval/                     #   Eval harness (classifier, runner, reporter, aggregator)
+│   │   └── commands/             #   one module per command
+│   ├── schemas/                  #   Pydantic models (ChangeArtifact → ChangeBrief →
+│   │                             #     PersonalizedBrief → PushPilotOutput → AuditRecord)
+│   ├── config/                   #   typed YAML loaders
+│   └── eval/                     #   eval harness (classifier, runner, reporter, aggregator)
 │
 ├── .claude/                      # Claude Code configuration
-│   ├── agents/                   #   System prompts: signalscribe.md, buatlas.md, pushpilot.md
-│   └── settings.json             #   Hook registrations
+│   ├── agents/                   #   system prompts: signalscribe.md, buatlas.md, pushpilot.md
+│   └── settings.json             #   hook registrations
 │
-├── schemas/                      # JSON Schema files (source of truth for data contracts)
-├── config/                       # Runtime config: bu_registry.yaml, bu_profiles.yaml,
-│                                 #   policy.yaml, channel_policy.yaml
-├── templates/                    # Jinja2 message templates (Teams card, email, push, digest)
-├── fixtures/                     # Synthetic change artifacts (8 coverage fixtures)
-│   ├── changes/                  #   change_001_clearcut_communicate.json … change_008
-│   └── sources/                  #   Per-adapter source fixtures (release notes, Jira, etc.)
-├── tests/                        # Test suite (619 tests, default; no LLM calls)
-│   ├── unit/                     #   Per-module unit tests
-│   ├── integration/              #   End-to-end integration tests (mock agents)
-│   └── eval/                     #   Eval harness tests (opt-in, LLM calls)
-├── scripts/eval/                 # Eval entry points: run_signalscribe.py, run_all.py, …
-├── audit/                        # Runtime audit output (gitignored except eval/ baseline)
-│   └── eval/2026-04-23-baseline/ #   Committed baseline: stable=10/acceptable=1/PASS
-├── design/                       # Planning docs, ADRs, decision criteria
-│   ├── planning/                 #   00-planning-index.md, 01-decision-criteria.md
-│   ├── adr/                      #   ADR-001, ADR-002
-│   └── dryrun/                   #   2026-04-23-dryrun-report.md
-├── prompts/                      # Prompt-driven build trail (00–14.5)
-├── pyproject.toml                # Package config; pytest markers; ruff + mypy settings
-└── CLAUDE.md                     # Developer log: standing instructions for all Claude Code sessions
+├── schemas/                      # JSON Schema files (data contract source of truth)
+├── config/                       # bu_registry.yaml, bu_profiles.yaml, policy.yaml,
+│                                 #   channel_policy.yaml
+├── templates/                    # Jinja2 templates (teams_card, email, push, portal_digest)
+├── fixtures/                     # synthetic change artifacts
+│   ├── changes/                  #   8 fixtures covering all gate paths
+│   └── sources/                  #   per-adapter source fixtures (release_notes, Jira, …)
+├── tests/                        # 619 tests; no LLM calls in default suite
+│   ├── unit/                     #   per-module unit tests
+│   ├── integration/              #   mock-agent pipeline + CLI smoke tests
+│   └── eval/                     #   real-LLM eval (opt-in via PULSECRAFT_RUN_EVAL_TESTS=1)
+├── scripts/eval/                 # per-agent eval entry points (run_signalscribe.py, run_all.py …)
+├── audit/eval/2026-04-23-baseline/  # committed baseline: stable=10/acceptable=1/PASS
+├── design/                       # planning docs, ADRs, decision criteria, dryrun report
+├── prompts/                      # prompt-driven build trail (00 → 14.5)
+├── pyproject.toml                # package config; pytest markers; ruff + mypy
+└── CLAUDE.md                     # developer log: standing instructions for Claude Code sessions
 ```
 
 ---
@@ -598,7 +737,7 @@ pulsecraft-change-intelligence/
 ## Testing
 
 ```bash
-# Fast suite — unit + integration tests, zero LLM calls (~4s)
+# Fast suite — unit + integration, zero LLM calls (~4s)
 .venv/bin/pytest tests/ -m "not llm and not eval" -q
 # 619 passed
 
@@ -608,89 +747,88 @@ pulsecraft-change-intelligence/
 # Linting
 .venv/bin/ruff check src/ tests/
 
-# Eval harness — opt-in, makes real LLM calls (~$1.74, ~27 min for full suite)
-PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/python scripts/eval/run_all.py
+# Eval harness — opt-in, real LLM calls (~$1.74, ~27 min full suite)
+PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/python scripts/eval/run_all.py --runs 3
 
-# Single agent eval
+# Single-agent eval (cheaper)
 PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/python scripts/eval/run_signalscribe.py --runs 3
 ```
 
-The test pyramid:
-
-| Layer | Count | What it covers |
-|---|---|---|
-| Unit | ~550 | Individual modules, schema parity, classifiers, hooks, skills |
-| Integration | ~69 | Full mock-agent pipeline runs, CLI smoke tests, explain output |
-| Eval | 15 (opt-in) | Real LLM behavior, variance classification, false-positive detection |
+Committed baseline (`audit/eval/2026-04-23-baseline/`): 15 cases × 3 runs, stable=10, acceptable_variance=1, unstable=1, skipped=3, **PASS** (0 false positives, 0 mismatches). Total cost $1.741 across all three agents.
 
 ---
 
-## Comparison with Alternatives
+## Comparison with alternatives
 
-| Approach | Accuracy | Latency | Cost | Auditability | BU personalization | Regulated content safety |
-|---|---|---|---|---|---|---|
-| **PulseCraft** | Calibrated (eval baseline: 0 false positives) | 15–90s/change | ~$0.13–0.25/change | Full audit JSONL, replayable | Native (per-BU gate 4-5) | Hooks + HITL routing |
-| **PM-written Slack summaries** | High (human judgment) | Hours to days | High (human time) | None | Done by hand, ad hoc | Depends on individual |
-| **Blanket email blasts** | Low (no filtering) | Fast | Cheap | None | None | None |
-| **Homegrown rule engines** | Brittle (breaks on phrasing changes) | Fast | Cheap | Possible | Rarely | Hard to maintain |
-| **Generic LLM chat assistant** | Variable (no calibration, no eval) | Seconds | Low | None | None | No guardrails |
+| Feature | PulseCraft | PM-written Slack | Email blasts | Rule engines | Generic LLM chat |
+|---|---|---|---|---|---|
+| Per-BU personalization | ✅ parallel per-BU agents | manual | none | manual authoring | possible via prompting |
+| Default-no bias | ✅ structured gates | human judgment | no | depends on rules | depends on prompt |
+| Audit trail | ✅ JSONL per change; replayable | message history | send logs | rule logs | chat history |
+| Safety gates (PII, MLR) | ✅ hooks | human caution | none | explicit rules only | no built-in guards |
+| Operator review workflow | ✅ HITL queue + CLI | ad-hoc | none | often absent | none |
+| Handles nuance / phrasing | ✅ LLM reasoning | ✅ human | ❌ no | ❌ brittle | ✅ but uncalibrated |
+| Cost at scale | ~$0.15/change | minutes of human time | near-zero | engineering maintenance | ~$0.05–0.20/change (no gates) |
 
-**Where PulseCraft is better:** BU-specific targeting, confidence calibration with human escalation, MLR/restricted-term guardrails, full audit trail.
-
-**Where alternatives are better:** PM judgment handles political nuance PulseCraft cannot; blanket blasts are zero-setup; rule engines are cheaper at scale if the domain is stable.
+Each alternative has real strengths. PM-written messages carry organizational context no model has. Rule engines are predictable and cheap when the domain is stable. Email blasts require zero infrastructure. PulseCraft trades some of each for the combination of per-BU reasoning, safety gates, and audit accountability.
 
 ---
 
 ## Roadmap
 
-### ✅ v0.1.0 — Walking skeleton (current)
+```
+v0.1.0 — walking skeleton (current) ✅
+  Three real LLM agents at six judgment gates
+  Deterministic orchestrator: state machine, HITL queue, audit writer
+  Four guardrail hooks: pre_ingest, post_agent, pre_deliver, audit_hook
+  13 operator CLI subcommands including /explain with run scoping
+  Per-agent variance-aware eval harness; committed baseline (PASS)
+  619 tests; 8 fixtures; ~$0.15 per change end-to-end on synthetic data
 
-- Three LLM-backed agents (SignalScribe, BUAtlas, PushPilot) at six gates
-- Deterministic orchestrator with state machine, HITL queue, audit writer
-- Guardrail hooks (PII redaction, confidence, restricted terms, quiet hours)
-- Delivery rendering (Teams cards, email, push, portal digest via Jinja2)
-- 13 CLI subcommands including `/explain` decision trail
-- Ingest adapters (release notes, Jira/ADO, docs, feature flags, incidents)
-- Eval harness with variance-aware classification; baseline PASS (0 false positives)
-- 619 tests; synthetic data only
+v0.2.0 — pilot-ready 🟡
+  Real ingest transports: Confluence, Jira API, LaunchDarkly, ServiceNow
+  Real delivery transports: Microsoft Graph (Teams), SMTP, push service
+  Semantic BU pre-filter: embedding-based similarity alongside keyword intersection
+  Production LLM runtime: Bedrock or Azure AI Foundry (pending InfoSec approval)
+  Two-BU pilot with real change artifacts and real BU heads
+  CI/CD pipeline with deterministic test gate + opt-in eval gate
 
-### 🟡 v0.2.0 — Pilot-ready (next)
+v0.3.0+ — scale
+  MLR co-reviewer agent: auto-review loop with human sign-off
+  Feedback loop: BU-head engagement rates feed back into gate-5 calibration
+  Multi-channel orchestration: Teams + email + portal in coordinated sequence
+  Change-family detection: group related changes into digests automatically
+```
 
-- Real ingest transports (Jira API, ServiceNow, Confluence)
-- Real delivery transports (Microsoft Teams webhook, Exchange/SMTP)
-- Semantic BU pre-filter (embedding-based similarity, not just keyword intersection)
-- Production LLM runtime (Bedrock or Azure AI Foundry; InfoSec approval required)
-- Two-BU pilot with real change artifacts and real BU heads
-- Confidence threshold tuning from pilot feedback
-- CI/CD pipeline with deterministic test gate + opt-in eval gate
+---
 
-### ⚪ v0.3.0+ — Scale
+## Technology stack
 
-- MLR co-reviewer agent: parallel review for scientific communication content
-- Feedback loop: BU-head read/action rates feed back to gate-5 calibration
-- Multi-channel orchestration: Teams + email + portal in coordinated sequence
-- Semantic change deduplication: detect same underlying change from multiple sources
-- Natural-language operator commands ("hold everything for bu_alpha this week")
+| Component | Technology |
+|---|---|
+| Language | Python 3.14 |
+| LLM | `claude-sonnet-4-6` via Anthropic SDK |
+| Schema validation | Pydantic v2 + JSON Schema draft 2020-12 |
+| CLI | Typer + Rich |
+| Templates | Jinja2 |
+| Structured logging | structlog |
+| Retries | tenacity |
+| Package manager | uv |
+| Test framework | pytest + pytest-asyncio |
 
 ---
 
 ## Contributing
 
-This is an internal AbbVie project in active development. The build is prompt-driven: each increment is specified in a prompt file in `prompts/`, run in Claude Code, and committed as a single feature commit.
+This is an internal AbbVie project in active development. The build is prompt-driven: each increment is specified in a prompt file under `prompts/`, run in Claude Code, and committed as a single feature commit with a conventional-commit message.
 
-To understand the codebase before contributing:
+Before contributing:
 
-1. Read [`CLAUDE.md`](CLAUDE.md) — standing instructions for all Claude Code sessions; explains the build model, conventions, and what not to do
-2. Read [`design/planning/01-decision-criteria.md`](design/planning/01-decision-criteria.md) — the six-gate framework; source of truth for any agent behavior question
-3. Read [`design/planning/00-planning-index.md`](design/planning/00-planning-index.md) — current phase, completed artifacts, open decisions
-4. Run the test suite: `.venv/bin/pytest tests/ -m "not llm and not eval" -q`
+1. Read [`CLAUDE.md`](CLAUDE.md) — standing instructions for all Claude Code sessions; explains the build model, naming conventions, and the complete list of what's done vs. planned.
+2. Read [`design/planning/01-decision-criteria.md`](design/planning/01-decision-criteria.md) — source of truth for any question about agent behavior. If code and this document disagree, fix the code.
+3. Run the default test suite: `.venv/bin/pytest tests/ -m "not llm and not eval" -q`
 
-Convention reminders:
-
-- No real AbbVie identifiers anywhere (BU names, product names, people, internal URLs). Use `bu_alpha`–`bu_zeta` and `<descriptor>` placeholders.
-- One prompt = one feature commit. Do not batch unrelated work.
-- Schemas are invariant across agent iterations. Schema changes require explicit discussion.
-- Don't silently weaken tests to make them pass.
+Convention reminders: snake_case everywhere; no real AbbVie identifiers in any committed file; one prompt = one feature commit; don't silently weaken a test to make it pass.
 
 ---
 
@@ -699,18 +837,18 @@ Convention reminders:
 - [Claude Sonnet 4.6 — Anthropic model docs](https://docs.anthropic.com/en/docs/about-claude/models/overview)
 - [Anthropic Python SDK](https://github.com/anthropics/anthropic-sdk-python)
 - [Pydantic v2](https://docs.pydantic.dev/latest/)
-- [Typer — CLI framework](https://typer.tiangolo.com/)
-- [Jinja2 — template engine](https://jinja.palletsprojects.com/)
-- [Tenacity — retry library](https://tenacity.readthedocs.io/)
-- [structlog — structured logging](https://www.structlog.org/)
-- [uv — Python package manager](https://docs.astral.sh/uv/)
+- [Typer](https://typer.tiangolo.com/)
+- [Jinja2](https://jinja.palletsprojects.com/)
+- [tenacity](https://tenacity.readthedocs.io/)
+- [structlog](https://www.structlog.org/)
+- [uv](https://docs.astral.sh/uv/)
 
 ---
 
 ## License
 
-**Internal AbbVie project. All rights reserved.**
+**Internal AbbVie project. All rights reserved. External use requires written permission.**
 
-This repository contains proprietary AbbVie internal tooling. It is not licensed for external use, redistribution, or modification without written permission from AbbVie.
+This repository contains proprietary internal tooling. It is not licensed for redistribution or modification outside AbbVie without written permission.
 
-> For Claude Code sessions working in this repo: read [`CLAUDE.md`](CLAUDE.md) before taking any action. It contains standing instructions, build conventions, and the complete build state.
+> **For Claude Code sessions:** read [`CLAUDE.md`](CLAUDE.md) before taking any action in this repo. It contains standing instructions, the full build state, and conventions that must be followed.

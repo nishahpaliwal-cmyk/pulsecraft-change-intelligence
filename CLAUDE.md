@@ -379,5 +379,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 14.5 (README overhaul — 716-line publication-quality README with Mermaid diagram, decision guides, use cases table, comparison table, roadmap; all metrics grounded in repo artifacts).*
+*Last updated: prompt 14.5 (README overhaul — 854-line publication-quality README with SVG architecture diagram, decision guides, use cases table, comparison table, roadmap; all metrics grounded in repo artifacts).*
 *P3 build sequence complete. No further prompts planned.*
