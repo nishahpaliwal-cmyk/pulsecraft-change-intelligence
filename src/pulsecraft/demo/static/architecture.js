@@ -89,7 +89,7 @@ const ARCH = {
     terminal: {
       id: 'terminal',
       label: 'Terminal state',
-      sub: 'DELIVERED · ARCHIVED · HELD · AWAITING · FAILED',
+      sub: 'DELIVERED · ARCHIVED · HELD · AWAITING',
       color: 'ok',
       cx: 1000, cy: 190,
       detail: {
@@ -492,56 +492,138 @@ function _selectNode(nodeId) {
 // ── Entrance choreography ─────────────────────────────────────────────────
 
 function _runEntrance() {
-  const nodeEls = _svg.querySelectorAll('.arch-node');
-  nodeEls.forEach(n => {
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Reset all nodes
+  _svg.querySelectorAll('.arch-node').forEach(n => {
     n.style.opacity = '0';
     n.style.transform = 'translate(0, 8px)';
     n.style.transition = '';
   });
 
-  const edgeEls = _svg.querySelectorAll('.arch-edge');
-  edgeEls.forEach(e => {
+  // Reset all edges
+  _svg.querySelectorAll('.arch-edge').forEach(e => {
     const len = e.dataset.len || '200';
     e.style.strokeDasharray = len;
     e.style.strokeDashoffset = len;
     e.style.transition = '';
   });
 
-  const nodeOrder = [
-    'ingest', 'signalscribe', 'post_ss', 'buatlas',
-    'pushpilot', 'pre_deliver', 'terminal', 'audit',
-  ];
+  // Reset labels
+  _svg.querySelectorAll('.arch-edge-label').forEach(l => {
+    l.style.opacity = '0';
+    l.style.transition = '';
+  });
 
-  let delay = 80;
-  nodeOrder.forEach(id => {
-    const el = document.getElementById(`arch-node-${id}`);
-    if (!el) return;
+  // Disable replay button while animation runs
+  if (_replayBtn) {
+    _replayBtn.disabled = true;
+    const lbl = _replayBtn.querySelector('.arch-replay-btn__label');
+    if (lbl) lbl.textContent = 'Replaying…';
+  }
+
+  const reEnable = (at) => setTimeout(() => {
+    if (!_replayBtn) return;
+    _replayBtn.disabled = false;
+    const lbl = _replayBtn.querySelector('.arch-replay-btn__label');
+    if (lbl) lbl.textContent = 'Replay';
+  }, at);
+
+  // ── Reduced motion: instant fades, no stagger ────────────────────────
+  if (reducedMotion) {
+    _svg.querySelectorAll('.arch-node').forEach(n => {
+      n.style.transition = 'opacity 200ms ease';
+      n.style.opacity = '1';
+      n.style.transform = 'translate(0, 0)';
+    });
+    _svg.querySelectorAll('.arch-edge').forEach(e => {
+      e.style.transition = 'stroke-dashoffset 200ms ease';
+      e.style.strokeDashoffset = '0';
+    });
+    _svg.querySelectorAll('.arch-edge-label').forEach(l => {
+      l.style.transition = 'opacity 200ms ease';
+      l.style.opacity = '1';
+    });
+    reEnable(300);
+    return;
+  }
+
+  // ── Full animation — interleaved nodes + edges (~9.5 s total) ────────
+
+  const NODE_DUR = 650; // node pop-in transition (ms)
+  const EDGE_DUR = 550; // base arrow-draw duration (ms)
+
+  function showNode(id, at) {
     setTimeout(() => {
-      el.style.transition = 'opacity 380ms cubic-bezier(0.2,0.8,0.2,1), transform 380ms cubic-bezier(0.2,0.8,0.2,1)';
+      const el = document.getElementById(`arch-node-${id}`);
+      if (!el) return;
+      el.style.transition = `opacity ${NODE_DUR}ms cubic-bezier(0.2,0.8,0.2,1), transform ${NODE_DUR}ms cubic-bezier(0.2,0.8,0.2,1)`;
       el.style.opacity = '1';
       el.style.transform = 'translate(0, 0)';
-    }, delay);
-    delay += 120;
-  });
+    }, at);
+  }
 
-  const edgesStart = delay + 100;
-  edgeEls.forEach((e, i) => {
-    const dur = 400 + i * 80;
+  function drawEdge(index, at, dur) {
     setTimeout(() => {
-      e.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(0.4,0,0.2,1)`;
-      e.style.strokeDashoffset = '0';
-    }, edgesStart + i * 60);
-  });
+      const el = _svg.querySelector(`.arch-edge[data-edge-index="${index}"]`);
+      if (!el) return;
+      el.style.transition = `stroke-dashoffset ${dur}ms cubic-bezier(0.4,0,0.2,1)`;
+      el.style.strokeDashoffset = '0';
+    }, at);
+  }
 
-  const labelsStart = edgesStart + edgeEls.length * 60 + 400;
-  const labelEls = _svg.querySelectorAll('.arch-edge-label');
-  labelEls.forEach((l, i) => {
-    l.style.opacity = '0';
+  function showLabel(index, at) {
     setTimeout(() => {
-      l.style.transition = 'opacity 300ms ease';
-      l.style.opacity = '1';
-    }, labelsStart + i * 60);
-  });
+      const el = _svg.querySelectorAll('.arch-edge-label')[index];
+      if (!el) return;
+      el.style.transition = 'opacity 400ms ease';
+      el.style.opacity = '1';
+    }, at);
+  }
+
+  // Edge indices follow ARCH.edges order:
+  // 0 ingest→signalscribe  (artifact)
+  // 1 signalscribe→post_ss (decisions)
+  // 2 post_ss→buatlas      (brief)
+  // 3 buatlas→pushpilot    (briefs)
+  // 4 pushpilot→pre_deliver(pref)
+  // 5 pre_deliver→terminal (enforce)
+  // 6 signalscribe→terminal(ARCHIVE/HOLD, dashed)
+  // 7-11 audit trail (no labels)
+
+  showNode('ingest',       200);
+  drawEdge(0,              700,  EDGE_DUR);  // → signalscribe
+  showNode('signalscribe', 1200);
+  drawEdge(1,              2000, EDGE_DUR);  // → post_ss
+  showNode('post_ss',      2400);
+  drawEdge(2,              2900, EDGE_DUR);  // → buatlas
+  showNode('buatlas',      3300);            // fan-out moment — extra dwell
+  drawEdge(3,              4300, EDGE_DUR);  // → pushpilot
+  showNode('pushpilot',    4700);
+  drawEdge(4,              5400, EDGE_DUR);  // → pre_deliver
+  showNode('pre_deliver',  6000);            // policy enforcement — prominent dwell
+  drawEdge(5,              7000, EDGE_DUR);  // → terminal
+  showNode('terminal',     7500);
+  drawEdge(6,              7800, 700);       // ARCHIVE/HOLD shortcut (slower draw)
+
+  // Audit trail settles last
+  showNode('audit',        8500);
+  drawEdge(7,              8800, 400);
+  drawEdge(8,              8950, 400);
+  drawEdge(9,              9100, 400);
+  drawEdge(10,             9250, 400);
+  drawEdge(11,             9400, 400);
+
+  // Edge labels fade in after pipeline is mostly drawn
+  showLabel(0, 7900);   // artifact
+  showLabel(1, 7980);   // decisions
+  showLabel(2, 8060);   // brief
+  showLabel(3, 8140);   // briefs
+  showLabel(4, 8220);   // pref
+  showLabel(5, 8300);   // enforce
+  showLabel(6, 8380);   // ARCHIVE/HOLD
+
+  reEnable(9900);
 }
 
 // ── Replay button (header area, flex sibling of heading text) ────────────
@@ -557,7 +639,7 @@ function _buildReplayBtn() {
       <path d="M2 7a5 5 0 1 0 1.5-3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       <path d="M2 3v4h4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
-    Replay
+    <span class="arch-replay-btn__label">Replay</span>
   `;
   _replayBtn.addEventListener('click', () => {
     _activeNodeId = null;
