@@ -4,6 +4,7 @@
  */
 
 import { initArchitecture, teardownArchitecture } from './architecture.js';
+import { initHowItWorks, teardownHowItWorks } from './how-it-works.js';
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
@@ -114,17 +115,25 @@ function switchTab(tab) {
     btn.setAttribute('aria-selected', String(isActive));
   });
 
-  const demoLayout  = document.querySelector('.layout');
-  const archTab     = document.getElementById('arch-tab');
+  const demoLayout = document.querySelector('.layout');
+  const archTab    = document.getElementById('arch-tab');
+  const howTab     = document.getElementById('how-tab');
+
+  teardownArchitecture();
+  teardownHowItWorks();
+
+  demoLayout.setAttribute('hidden', '');
+  archTab.setAttribute('hidden', '');
+  howTab.setAttribute('hidden', '');
 
   if (tab === 'demo') {
-    teardownArchitecture();
     demoLayout.removeAttribute('hidden');
-    archTab.setAttribute('hidden', '');
   } else if (tab === 'architecture') {
-    demoLayout.setAttribute('hidden', '');
     archTab.removeAttribute('hidden');
     initArchitecture();
+  } else if (tab === 'how-it-works') {
+    howTab.removeAttribute('hidden');
+    initHowItWorks();
   }
 }
 

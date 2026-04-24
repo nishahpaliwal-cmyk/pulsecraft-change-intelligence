@@ -162,3 +162,37 @@ class TestArchitectureTab:
         assert resp.status_code == 200
         assert "initArchitecture" in resp.text
         assert "architecture.js" in resp.text
+
+    def test_index_html_has_how_it_works_tab_button(self) -> None:
+        """How it works tab button must be present, enabled, and have data-tab attribute."""
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert 'data-tab="how-it-works"' in resp.text
+        assert 'tab-btn--soon' not in resp.text or 'how-it-works' not in resp.text
+        assert "How it works — coming soon" not in resp.text
+
+    def test_index_html_has_how_tab_container(self) -> None:
+        """How it works tab wrapper div must exist in the page markup."""
+        resp = client.get("/")
+        assert 'id="how-tab"' in resp.text
+
+    def test_how_it_works_css_served(self) -> None:
+        """how-it-works.css must be served and contain chapter styles."""
+        resp = client.get("/static/how-it-works.css")
+        assert resp.status_code == 200
+        assert ".how-chapter" in resp.text
+        assert ".how-wrap" in resp.text
+
+    def test_how_it_works_js_served(self) -> None:
+        """how-it-works.js must be served and export init/teardown functions."""
+        resp = client.get("/static/how-it-works.js")
+        assert resp.status_code == 200
+        assert "initHowItWorks" in resp.text
+        assert "teardownHowItWorks" in resp.text
+
+    def test_app_js_imports_how_it_works_module(self) -> None:
+        """app.js must import initHowItWorks from how-it-works.js."""
+        resp = client.get("/static/app.js")
+        assert resp.status_code == 200
+        assert "initHowItWorks" in resp.text
+        assert "how-it-works.js" in resp.text

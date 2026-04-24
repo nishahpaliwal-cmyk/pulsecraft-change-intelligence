@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <link rel="stylesheet" href="/static/architecture.css">
+  <link rel="stylesheet" href="/static/how-it-works.css">
 </head>
 <body>
   <div id="app">
@@ -22,7 +23,7 @@
       <nav class="top-bar__tabs" role="tablist" aria-label="App sections">
         <button class="tab-btn tab-btn--active" role="tab" aria-selected="true" data-tab="demo" aria-label="Demo">Demo</button>
         <button class="tab-btn" role="tab" aria-selected="false" data-tab="architecture" aria-label="Architecture">Architecture</button>
-        <button class="tab-btn tab-btn--soon" role="tab" aria-selected="false" aria-label="How it works — coming soon" disabled>How it works</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="how-it-works" aria-label="How it works">How it works</button>
       </nav>
       <div class="top-bar__right">
         <span class="demo-pill" aria-label="Demo mode — synthetic BUs, stubbed transports">demo mode</span>
@@ -80,6 +81,9 @@
     <div id="arch-tab" class="arch-tab-wrap" hidden>
       <div id="arch-root"></div>
     </div>
+
+    <!-- How it works tab -->
+    <div id="how-tab" class="how-tab-wrap" hidden></div>
 
     <!-- Audit trail drawer -->
     <div class="drawer" id="audit-drawer" hidden aria-modal="true" role="dialog" aria-label="Audit trail">
