@@ -49,6 +49,7 @@
 - ✅ 15.7 — Documentation update: README demo results section (6 screenshots, 2 scenarios), 14th CLI subcommand (demo serve), test count and roadmap fixes, planning index catch-up (prompts 15.5–15.5.3)
 - ✅ 15.6 — Demo visual rebuild: full-canvas layout (300px sidebar, 900px doc, 60px rail, 50px h-pad, 1440px max-width), animation system (card-enter, drift, draw-line, rail-pulse, shimmer), welcome-state animated exit, STATE_META terminal titles, PushPilot SVG connector arrow, ARCHIVED blockquote treatment, 637 tests unchanged
 - ✅ 15.6.1 — Multi-BU pre-filter regression fix: keyword-match fallback in lookup_bu_candidates handles LLM vocabulary drift (SignalScribe producing "analytics" instead of "analytics_portal"), 639 tests
+- ✅ 15.6.2 — Space-normalisation + vocabulary grounding: pre-filter now normalises "analytics portal" → "analytics_portal" before matching; SignalScribe prompt injected with 25-term canonical vocabulary; 640 tests
 
 **Prompts remaining:**
 - *(none — P3 build sequence + demo complete)*
@@ -389,5 +390,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 15.6.1 (multi-BU pre-filter fix — keyword-match fallback in lookup_bu_candidates; 639 tests).*
+*Last updated: prompt 15.6.2 (space-normalisation + SignalScribe vocabulary grounding; 640 tests).*
 *P3 build sequence + demo complete.*

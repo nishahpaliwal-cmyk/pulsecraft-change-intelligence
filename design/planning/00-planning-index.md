@@ -9,9 +9,9 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 15.6.1 (multi-BU pre-filter fix — keyword-match fallback in lookup_bu_candidates handles LLM vocabulary drift; 639 tests).
+**Last completed:** Prompt 15.6.2 (space-normalisation + SignalScribe vocabulary grounding; "analytics portal" → "analytics_portal" in pre-filter; 25-term canonical vocabulary injected into SignalScribe prompt; 640 tests).
 
-Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15.6.1. P3 build sequence + demo are done.
+Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15.6.2. P3 build sequence + demo are done.
 
 ---
 
@@ -146,6 +146,7 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is comple
 | 108 | Documentation update | `README.md`, `CLAUDE.md`, `design/README.md`, `design/planning/00-planning-index.md` | 15.7 | Demo results section (6 screenshots, 2 scenarios); planning index catch-up; test counts and roadmap fixes; demo serve as 14th CLI subcommand |
 | 109 | Demo visual rebuild | `src/pulsecraft/demo/static/app.js`, `src/pulsecraft/demo/static/style.css`, `src/pulsecraft/demo/static/index.html` | 15.6 | Full-canvas layout (300px sidebar, 900px doc, 60px rail, 50px h-pad, 1440px max-width); animation system; welcome-state animated exit; STATE_META terminal titles; PushPilot SVG connector arrow; ARCHIVED blockquote treatment; 637 tests unchanged |
 | 110 | Multi-BU pre-filter fix | `src/pulsecraft/skills/registry.py`, `tests/unit/skills/test_registry.py`, `tests/integration/orchestrator/test_run_change_fixtures.py` | 15.6.1 | Keyword-match fallback in lookup_bu_candidates: when exact owned_product_areas pass finds no candidates, try normalized keyword equality; fixes scenario 006 ARCHIVED with no_candidate_bus when SignalScribe produces plain-language impact_areas; 639 tests |
+| 111 | Space-normalisation + vocab grounding | `src/pulsecraft/skills/registry.py`, `tests/unit/skills/test_registry.py`, `.claude/agents/signalscribe.md` | 15.6.2 | Primary pass now normalises space-separated phrases to snake_case ("analytics portal" → "analytics_portal") before exact matching; SignalScribe prompt injected with 25-term canonical vocabulary; 640 tests |
 
 ---
 
@@ -234,6 +235,7 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 15.7 | *(inline)* | Documentation update: README demo results section (6 screenshots), planning index catch-up, test count fixes, demo serve as 14th CLI subcommand | ✅ Done |
 | 15.6 | `prompts/15.6-demo-visual-rebuild.md` | Demo visual rebuild: full-canvas layout, animation system, welcome exit, STATE_META titles, PushPilot SVG connector, ARCHIVED blockquote; 637 tests unchanged | ✅ Done |
 | 15.6.1 | `prompts/15.6.1-multi-bu-regression-fix.md` | Multi-BU pre-filter fix: keyword-match fallback in lookup_bu_candidates; regression test for analytics vocabulary; 639 tests | ✅ Done |
+| 15.6.2 | `prompts/15.6.2-signalscribe-vocabulary-grounding.md` | Space-normalisation + SignalScribe vocab grounding: "analytics portal" → "analytics_portal" in pre-filter; 25-term canonical vocab in SignalScribe prompt; 640 tests | ✅ Done |
 
 ---
 
