@@ -13,15 +13,18 @@
   <div id="app">
 
     <!-- Top bar -->
-    <header class="top-bar" role="banner">
+    <header class="top-bar" id="top-bar" role="banner">
       <div class="top-bar__brand">
         <span class="brand-name">PulseCraft</span>
         <span class="brand-sub">· Change Intelligence</span>
       </div>
-      <div class="top-bar__center">
-        <span class="demo-pill" aria-label="Demo mode — synthetic BUs, stubbed transports">demo mode</span>
-      </div>
+      <nav class="top-bar__tabs" role="tablist" aria-label="App sections">
+        <button class="tab-btn tab-btn--active" role="tab" aria-selected="true" aria-label="Demo">Demo</button>
+        <button class="tab-btn tab-btn--soon" role="tab" aria-selected="false" aria-label="Architecture — coming soon" disabled>Architecture</button>
+        <button class="tab-btn tab-btn--soon" role="tab" aria-selected="false" aria-label="How it works — coming soon" disabled>How it works</button>
+      </nav>
       <div class="top-bar__right">
+        <span class="demo-pill" aria-label="Demo mode — synthetic BUs, stubbed transports">demo mode</span>
         <span class="cost-counter" id="cost-counter" aria-live="polite">—</span>
       </div>
     </header>
@@ -35,7 +38,7 @@
         <div class="scenario-list" id="scenario-list" role="list">
           <!-- Populated by JS -->
         </div>
-        <div class="sidebar__hint">Keyboard shortcuts: <kbd>1</kbd>–<kbd>5</kbd></div>
+        <div class="sidebar__hint">Press <kbd>1</kbd>–<kbd>5</kbd> to run a scenario</div>
       </aside>
 
       <!-- Decision document -->
@@ -43,15 +46,21 @@
         <!-- Welcome state -->
         <div class="welcome" id="welcome">
           <div class="welcome__illustration" aria-hidden="true">
-            <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="24" cy="40" r="16" fill="#534AB7" opacity="0.25"/>
-              <circle cx="40" cy="28" r="16" fill="#0F6E56" opacity="0.25"/>
-              <circle cx="56" cy="40" r="16" fill="#993C1D" opacity="0.25"/>
+            <svg width="96" height="80" viewBox="0 0 96 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <g class="welcome__circle-a">
+                <circle cx="28" cy="42" r="18" fill="#534AB7" opacity="0.22"/>
+              </g>
+              <g class="welcome__circle-b">
+                <circle cx="48" cy="28" r="18" fill="#0F6E56" opacity="0.22"/>
+              </g>
+              <g class="welcome__circle-c">
+                <circle cx="68" cy="42" r="18" fill="#993C1D" opacity="0.22"/>
+              </g>
             </svg>
           </div>
-          <h2 class="welcome__heading">Select a scenario to watch PulseCraft reason about a change.</h2>
-          <p class="welcome__body">Each scenario runs the real pipeline with real LLM agents. Expect ~30–50 seconds per run.</p>
-          <p class="welcome__hint">Keyboard shortcuts: 1–5</p>
+          <h2 class="welcome__heading">Five scenarios. Real agents. Real reasoning.</h2>
+          <p class="welcome__body">Each scenario runs the real PulseCraft pipeline with all three LLM agents. Gates reason about the change, hooks enforce policy, outcomes route to delivery or human review. Expect 30–50 seconds per run.</p>
+          <p class="welcome__hint">Select a scenario — or press 1–5 — to begin.</p>
         </div>
         <!-- Run content appended here by JS -->
         <div id="run-content" hidden></div>
