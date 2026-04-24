@@ -12,6 +12,14 @@
 
 .arch-heading {
   padding-top: 8px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.arch-heading__text {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .arch-heading__title {
   font-family: 'Fraunces', serif;
@@ -34,7 +42,6 @@
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
   overflow: hidden;
-  position: relative; /* anchor for absolute-positioned replay button */
 }
 
 #arch-svg {
@@ -177,13 +184,11 @@
   background: rgba(255,255,255,0.7);
 }
 
-/* ── Replay button — absolute-positioned inside diagram canvas ────────────── */
+/* ── Replay button — flex sibling of heading text, never overlaps canvas ──── */
 
 .arch-replay-btn {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  z-index: 1;
+  flex: 0 0 auto;
+  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -197,7 +202,6 @@
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 180ms var(--ease-std);
-  box-shadow: 0 1px 4px rgba(31,29,24,0.06);
 }
 .arch-replay-btn:hover {
   background: var(--bg-warm);

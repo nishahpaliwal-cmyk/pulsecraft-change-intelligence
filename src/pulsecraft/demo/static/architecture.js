@@ -190,9 +190,12 @@ function _buildDOM() {
 
   const heading = document.createElement('div');
   heading.className = 'arch-heading';
+  heading.id = 'arch-heading';
   heading.innerHTML = `
-    <h2 class="arch-heading__title">System architecture</h2>
-    <p class="arch-heading__sub">Three LLM agents, four guardrail hooks, one deterministic orchestrator. Click any node.</p>
+    <div class="arch-heading__text">
+      <h2 class="arch-heading__title">System architecture</h2>
+      <p class="arch-heading__sub">Three LLM agents, four guardrail hooks, one deterministic orchestrator. Click any node.</p>
+    </div>
   `;
   root.appendChild(heading);
 
@@ -541,11 +544,11 @@ function _runEntrance() {
   });
 }
 
-// ── Replay button (inside diagram canvas, top-right) ──────────────────────
+// ── Replay button (header area, flex sibling of heading text) ────────────
 
 function _buildReplayBtn() {
-  const canvas = document.getElementById('arch-canvas');
-  if (!canvas) return;
+  const heading = document.getElementById('arch-heading');
+  if (!heading) return;
   _replayBtn = document.createElement('button');
   _replayBtn.className = 'arch-replay-btn';
   _replayBtn.setAttribute('aria-label', 'Replay entrance animation');
@@ -562,7 +565,7 @@ function _buildReplayBtn() {
     _buildDetailPanel();
     _runEntrance();
   });
-  canvas.appendChild(_replayBtn);
+  heading.appendChild(_replayBtn);
 }
 
 // ── Agent-vs-code principle callout ──────────────────────────────────────
