@@ -8,14 +8,16 @@
 
 ## Status
 
-**Planning phase complete. Implementation in progress.**
+**Walking skeleton complete. All three agents authored, demo UI shipped.**
 
 - ✅ P0 — Problem framing
 - ✅ P1 — Pattern decision (ADR-001, ADR-002)
 - ✅ P2 — Decision design (six-gate criteria + architecture)
-- 🚧 P3 — Agent prompt authoring (next)
+- ✅ P3 — Agent prompt authoring, orchestrator, skills, hooks, eval harness, demo UI
 
-See [`planning/00-planning-index.md`](planning/00-planning-index.md) for the current status and artifact registry.
+A FastAPI + SSE demo UI (`pulsecraft demo serve`) streams live agent decisions for five synthetic scenarios — see `design/demo/screenshots/` for session screenshots. 637 tests, 8 fixtures.
+
+See [`planning/00-planning-index.md`](planning/00-planning-index.md) for the full artifact registry and prompt-by-prompt build log.
 
 ---
 

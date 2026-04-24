@@ -3,7 +3,7 @@
 > AI agents that turn marketplace changes into BU-ready notifications — with safety gates, audit trails, and human-in-the-loop review.
 
 [![Python](https://img.shields.io/badge/python-3.14-blue)](https://www.python.org/)
-[![Tests](https://img.shields.io/badge/tests-634%20passing-brightgreen)](#testing)
+[![Tests](https://img.shields.io/badge/tests-637%20passing-brightgreen)](#testing)
 [![Model](https://img.shields.io/badge/model-claude--sonnet--4--6-orange)](https://docs.anthropic.com/en/docs/about-claude/models/overview)
 [![License](https://img.shields.io/badge/license-internal-red)](#license)
 [![Status](https://img.shields.io/badge/status-walking%20skeleton-yellow)](#roadmap)
@@ -17,6 +17,32 @@ BU heads at scale miss important changes or drown in irrelevant ones. Vendor rel
 PulseCraft solves this with three specialist LLM agents collaborating at six judgment gates, wrapped in a deterministic orchestrator and four guardrail hooks. The system's default answer is always "don't send" — it takes affirmative signals at every gate to produce a notification. SignalScribe interprets the change artifact and decides whether it's worth communicating, whether the timing is right, and whether the interpretation is clear enough to act on. BUAtlas runs in parallel per candidate BU, deciding whether each BU is genuinely affected and whether the drafted message is worth that BU head's attention. PushPilot decides whether now is the right time to deliver.
 
 What makes PulseCraft different from a generic LLM pipeline is the agent-vs-code split: agents express preference, code enforces invariants. PushPilot can say `SEND_NOW` and the `pre_deliver` hook will still enforce quiet hours, rate limits, and MLR-term restrictions — and log both the agent's preference and the code override. Every decision is logged to an append-only audit trail and replayable via `pulsecraft explain <change-id>`. Current state: walking skeleton on synthetic data, ~$0.08 per change end-to-end on the dryrun set.
+
+---
+
+## Demo results
+
+Six screenshots from a live walkthrough of scenarios 03 (multi-BU parallel fan-out) and 04 (MLR-sensitive routing) using real agents (`claude-sonnet-4-6`). Run via `pulsecraft demo serve`.
+
+**Scenario 03 — Multi-BU parallel fan-out (analytics portal change)**
+
+| Step | Screenshot | What it shows |
+|---|---|---|
+| Gates 1–3 | ![SignalScribe gates 1-3](design/demo/screenshots/Screenshot_scenario_03-1.png) | SignalScribe interprets the change: COMMUNICATE → RIPE → READY with impact areas and confidence score |
+| BUAtlas fan-out | ![BUAtlas fan-out](design/demo/screenshots/Screenshot_scenario_03-2.png) | Three BU cards rendered in parallel (bu_zeta, bu_delta, bu_epsilon) with per-BU relevance and message drafts |
+| HITL routing | ![HITL routing](design/demo/screenshots/Screenshot_scenario_03-3.png) | priority_p0 HITL trigger fires; operator review panel opens with full decision trail |
+
+Cost: ~$0.088 · Elapsed: ~69 s end-to-end
+
+**Scenario 04 — MLR-sensitive routing (HCP educational module)**
+
+| Step | Screenshot | What it shows |
+|---|---|---|
+| Gates 1–3 | ![SignalScribe gates 1-3](design/demo/screenshots/Screenshot_scenario_04-1.png) | SignalScribe flags the change as MLR-sensitive content during gate-3 interpretation |
+| MLR routing | ![MLR routing](design/demo/screenshots/Screenshot_scenario_04-2.png) | Gamma BU card plus the mlr_sensitive routing banner triggering HITL |
+| Operator panel | ![Operator panel](design/demo/screenshots/Screenshot_scenario_04-3.png) | Operator review panel showing the agent decision trail and pending queue item |
+
+Cost: ~$0.167 · Elapsed: ~77 s end-to-end
 
 ---
 
@@ -38,6 +64,12 @@ What makes PulseCraft different from a generic LLM pipeline is the agent-vs-code
 .venv/bin/pulsecraft pending
 .venv/bin/pulsecraft approve a1b2c3d4 --reviewer "<operator-name>"
 .venv/bin/pulsecraft reject  a1b2c3d4 --reason "duplicate of yesterday's notification"
+```
+
+**Launch the demo UI (requires `ANTHROPIC_API_KEY`):**
+```bash
+.venv/bin/pulsecraft demo serve
+# Open http://localhost:8000 — select a scenario, watch agents stream live
 ```
 
 ---
@@ -438,7 +470,7 @@ All hook invocations write a `HOOK_FIRED` audit record. Fail-closed hooks can do
 
 ## Operator commands
 
-The `pulsecraft` CLI has 13 subcommands:
+The `pulsecraft` CLI has 14 subcommands:
 
 | Command | Purpose |
 |---|---|
@@ -455,6 +487,7 @@ The `pulsecraft` CLI has 13 subcommands:
 | `digest` | Dispatch digest items that are due |
 | `audit <change-id>` | Print raw JSONL audit chain; `--list` for all known IDs |
 | `metrics` | Aggregate cost, latency, and terminal-state distribution over a time window |
+| `demo serve` | Launch the demo UI (FastAPI + SSE); streams live agent decisions at http://localhost:8000 |
 
 `explain` is the observability star — it's the first command to run when a terminal state is unexpected. Partial change IDs (first 8 chars) are resolved automatically.
 
@@ -488,6 +521,7 @@ pulsecraft-change-intelligence/
 │   └── channel_policy.yaml    # Approved channels, routing rules, dedupe window
 ├── design/              # Architecture, ADRs, decision criteria, planning index
 │   ├── adr/             # Architecture Decision Records (001, 002)
+│   ├── demo/screenshots/ # Demo UI screenshots (scenarios 03, 04)
 │   ├── dryrun/          # First end-to-end dryrun report
 │   └── planning/        # Planning index + six-gate decision criteria
 ├── fixtures/
@@ -499,7 +533,8 @@ pulsecraft-change-intelligence/
 ├── scripts/eval/        # Per-agent eval entry points (run_all.py, run_signalscribe.py, ...)
 ├── src/pulsecraft/
 │   ├── agents/          # SignalScribe, BUAtlas, PushPilot + fan-out
-│   ├── cli/             # Typer app + 13 command modules
+│   ├── cli/             # Typer app + 14 command modules
+│   ├── demo/            # FastAPI + SSE demo server; instrumented_run; static JS/CSS
 │   ├── config/          # Typed YAML loaders
 │   ├── eval/            # Eval harness: expectations, classifier, runner, reporter, aggregator
 │   ├── hooks/           # pre_ingest, post_agent, pre_deliver, audit_hook
@@ -522,7 +557,7 @@ pulsecraft-change-intelligence/
 | Integration | `tests/integration/` | ~49 | `.venv/bin/pytest tests/integration/ -m "not llm"` |
 | LLM integration | `tests/integration/` | 30 | `.venv/bin/pytest -m llm` (requires `ANTHROPIC_API_KEY`) |
 | Eval regression | `tests/eval/` | 15 | `PULSECRAFT_RUN_EVAL_TESTS=1 .venv/bin/pytest -m eval` |
-| **Total (non-LLM)** | | **634** | `.venv/bin/pytest tests/ -m "not llm and not eval"` |
+| **Total (non-LLM)** | | **637** | `.venv/bin/pytest tests/ -m "not llm and not eval"` |
 
 Eval baseline (2026-04-23): 15 cases × 3 runs × 3 agents. Results: stable=10, acceptable_variance=1, unstable=1, skipped=3. **PASS** (0 false_positive_risk + 0 mismatch). Total cost $1.741 over 26.9 min. See `audit/eval/2026-04-23-baseline/aggregate.md`.
 
@@ -551,9 +586,10 @@ v0.1.0 — walking skeleton (current) ✅
   Six decision gates with full verb sets
   Four guardrail hooks (pre_ingest, post_agent, pre_deliver, audit_hook)
   Deterministic orchestrator with 12-state machine
-  13 operator subcommands including /explain with run scoping
+  14 operator subcommands including /explain with run scoping
   Per-agent variance-aware eval harness (baseline: stable=10/acceptable=1/unstable=1)
-  636 tests, 8 fixtures, ~$0.08 per change end-to-end
+  Demo UI: FastAPI + SSE single-page app; 5 scenarios; live agent streaming
+  637 tests, 8 fixtures, ~$0.08 per change end-to-end
 
 v0.2.0 — pilot-ready (next) 🟡
   Real ingest transports (Confluence, Jira, LaunchDarkly, ServiceNow)

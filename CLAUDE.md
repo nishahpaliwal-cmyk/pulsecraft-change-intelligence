@@ -46,6 +46,7 @@
 - ✅ 15.5.1 — HITLQueue fix: instrumented_run called HITLQueue() with no args; pass audit_writer; try/except wraps _run_pipeline; 636 tests
 - ✅ 15.5.2 — buatlas_fanout_sync fix: missing factory lambda; welcome state hides immediately on scenario click; 636 tests
 - ✅ 15.5.3 — BU pre-filter fix: disjoint bu_registry meant only one BU ever matched; added shared areas to bu_delta/bu_epsilon; pre_deliver hook now only fires for SEND_NOW; integration tests made time-insensitive; 637 tests
+- ✅ 15.7 — Documentation update: README demo results section (6 screenshots, 2 scenarios), 14th CLI subcommand (demo serve), test count and roadmap fixes, planning index catch-up (prompts 15.5–15.5.3)
 
 **Prompts remaining:**
 - *(none — P3 build sequence + demo complete)*
@@ -196,6 +197,7 @@ CLI root: `src/pulsecraft/cli/` — refactored into `commands/` with one module 
 | `audit` | `commands/audit.py` | Show full audit chain for a change_id (`--list` for all IDs) |
 | `metrics` | `commands/metrics.py` | Aggregate pipeline metrics over a time window |
 | `explain` | `commands/explain.py` | Human-readable decision trail for a change_id (demo-day command) |
+| `demo serve` | `commands/demo.py` | Launch demo UI (FastAPI + SSE) at http://localhost:8000; streams live agent decisions |
 
 **Supporting skills:**
 - `explain_chain` skill: `src/pulsecraft/skills/explain_chain.py` — builds `Explanation` dataclass from audit chain; classifies records into AgentDecisionEvent, HITLEvent, DeliveryEvent, StateTransitionEvent.
@@ -385,5 +387,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 15.5.3 (BU pre-filter fix — disjoint bu_registry meant only one BU ever matched per change; added shared areas to bu_delta/bu_epsilon so scenario 006 now evaluates 3 BUs in parallel; pre_deliver hook scoped to SEND_NOW only; integration tests made time-insensitive; 637 tests).*
+*Last updated: prompt 15.7 (documentation update — README demo results section with 6 screenshots, planning index catch-up for prompts 15.5–15.5.3, test count and roadmap fixes, demo serve listed as 14th CLI subcommand; 637 tests).*
 *P3 build sequence + demo complete.*

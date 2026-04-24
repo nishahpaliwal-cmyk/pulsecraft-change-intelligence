@@ -9,7 +9,7 @@
 
 **Phase:** Active implementation — schemas and config complete, agent authoring next.
 
-**Last completed:** Prompt 15.5.3 (BU pre-filter fix — disjoint bu_registry meant only one BU ever matched per change; added shared areas to bu_delta/bu_epsilon so scenario 006 evaluates 3 BUs in parallel; 637 tests passing).
+**Last completed:** Prompt 15.7 (documentation update — README demo results section with 6 screenshots, planning index catch-up for prompts 15.5–15.5.3, test count and roadmap fixes; 637 tests).
 
 Planning phases P0–P2 are complete. The prompt-driven build sequence is complete through prompt 15.5. P3 build sequence + demo are done.
 
@@ -142,6 +142,8 @@ Planning phases P0–P2 are complete. The prompt-driven build sequence is comple
 | 104 | Demo sidebar fix | `src/pulsecraft/demo/static/app.js`, `tests/demo/test_server_routes.py` | 15.5 | Fixed JS SyntaxError (missing `)` in escHtml call) that prevented scenario cards from rendering; regression test added |
 | 105 | HITLQueue fix | `src/pulsecraft/demo/instrumented_run.py`, `tests/demo/test_server_routes.py` | 15.5.1 | Pass audit_writer to HITLQueue; wrap _run_pipeline in try/except to surface errors via event bus |
 | 106 | buatlas_fanout_sync fix | `src/pulsecraft/demo/instrumented_run.py`, `src/pulsecraft/demo/static/app.js` | 15.5.2 | Pass factory lambda to buatlas_fanout_sync; hide welcome state immediately on scenario click |
+| 107 | BU pre-filter fix | `config/bu_registry.yaml`, `config/bu_profiles.yaml`, `src/pulsecraft/orchestrator/engine.py`, `tests/integration/orchestrator/test_run_change_fixtures.py` | 15.5.3 | Shared product areas added to bu_delta/bu_epsilon; pre_deliver hook gated on SEND_NOW; integration tests time-insensitive; 637 tests |
+| 108 | Documentation update | `README.md`, `CLAUDE.md`, `design/README.md`, `design/planning/00-planning-index.md` | 15.7 | Demo results section (6 screenshots, 2 scenarios); planning index catch-up; test counts and roadmap fixes; demo serve as 14th CLI subcommand |
 
 ---
 
@@ -223,6 +225,11 @@ All implementation happens via prompts in `/prompts/`, run one at a time in Clau
 | 14.5 | `prompts/14.5-readme-overhaul.md` | README overhaul — 625-line publication-quality README with Mermaid diagram | ✅ Done |
 | 14.6 | `prompts/14.6-remove-abbvie.md` | Remove org-specific identifiers — repo reads as generic enterprise project | ✅ Done |
 | 15 | `prompts/15-demo-ui.md` | Demo UI — FastAPI + SSE + vanilla JS SPA; 5 scenarios; 634 tests; `pulsecraft demo serve` | ✅ Done |
+| 15.5 | *(inline)* | Demo sidebar fix: JS SyntaxError (missing `)` in escHtml) prevented scenario cards from rendering; regression test added; 635 tests | ✅ Done |
+| 15.5.1 | *(inline)* | HITLQueue fix: pass audit_writer to HITLQueue(); try/except wraps _run_pipeline to surface background errors; 636 tests | ✅ Done |
+| 15.5.2 | *(inline)* | buatlas_fanout_sync fix: missing factory lambda crashed pipeline after SignalScribe; welcome state hides immediately on scenario click; 636 tests | ✅ Done |
+| 15.5.3 | *(inline)* | BU pre-filter fix: disjoint bu_registry meant only one BU ever matched; shared areas added to bu_delta/bu_epsilon; pre_deliver gated on SEND_NOW; integration tests made time-insensitive; 637 tests | ✅ Done |
+| 15.7 | *(inline)* | Documentation update: README demo results section (6 screenshots), planning index catch-up, test count fixes, demo serve as 14th CLI subcommand | ✅ Done |
 
 ---
 
