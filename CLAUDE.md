@@ -56,6 +56,7 @@
 - ✅ 16.1 — Architecture tab surgical fixes: hitl_eval pseudo-node removed (buatlas→pushpilot direct edge); BUAtlas stacked-card ghost rects signal asyncio fan-out; agent-vs-code principle callout added; replay button moved into canvas as absolute top-right; 642 tests
 - ✅ 16.1.1 — Replay button overlap fix: moved from position:absolute inside canvas to flex sibling of heading text in #arch-heading; eliminates overlap with pre_deliver node at all viewport widths; 642 tests
 - ✅ 16.1.2 — Architecture tab text truncation fix: Terminal state subtitle AWAITING_HITL→AWAITING (fits SVG viewbox); edge labels per-BU briefs→briefs, preference→pref (fit within node-gap bounds); 642 tests
+- ✅ 16.1.3 — Terminal subtitle drops ·FAILED (fits cleanly); entrance animation restructured to interleaved node/edge sequence (~9.5s, narration-paced); replay button shows Replaying… disabled state; reduced-motion collapses to 200ms fades; 642 tests
 
 **Prompts remaining:**
 - *(none — P3 build sequence + demo complete)*
@@ -396,5 +397,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 16.1.2 (Terminal subtitle and edge label truncation fixes; 642 tests).*
+*Last updated: prompt 16.1.3 (Terminal subtitle drop FAILED; entrance animation ~9.5s interleaved; replay button Replaying… state; 642 tests).*
 *P3 build sequence + demo complete.*
