@@ -50,6 +50,8 @@
 - ✅ 15.6 — Demo visual rebuild: full-canvas layout (300px sidebar, 900px doc, 60px rail, 50px h-pad, 1440px max-width), animation system (card-enter, drift, draw-line, rail-pulse, shimmer), welcome-state animated exit, STATE_META terminal titles, PushPilot SVG connector arrow, ARCHIVED blockquote treatment, 637 tests unchanged
 - ✅ 15.6.1 — Multi-BU pre-filter regression fix: keyword-match fallback in lookup_bu_candidates handles LLM vocabulary drift (SignalScribe producing "analytics" instead of "analytics_portal"), 639 tests
 - ✅ 15.6.2 — Space-normalisation + vocabulary grounding: pre-filter now normalises "analytics portal" → "analytics_portal" before matching; SignalScribe prompt injected with 25-term canonical vocabulary; 640 tests
+- ✅ 15.6.3 — Demo polish (4 issues): skeleton placeholders cleaned at terminal state; AWAITING_HITL heading deduplication (trigger type in section bar); PushPilot section consolidated to single section-pushpilot; BUAtlas prompt updated with P0/P1 examples to reduce bu_gamma P0 variance; 640 tests
+- ✅ 15.6.4 — Demo polish (3 issues): PushPilot shimmer removed (0 loading shimmers, decisions arrive per-BU); duplicate terminal heading fixed for all states (ARCHIVED/DELIVERED/HELD section bar now blank, body heading is sole state title); PushPilot confidence bar removed (Path A — no confidence in event, timing decision needs no score); 640 tests
 
 **Prompts remaining:**
 - *(none — P3 build sequence + demo complete)*
@@ -390,5 +392,5 @@ Pass gate: 0 `false_positive_risk` + 0 `mismatch` = PASS. False positives are as
 
 ---
 
-*Last updated: prompt 15.6.2 (space-normalisation + SignalScribe vocabulary grounding; 640 tests).*
+*Last updated: prompt 15.6.4 (demo polish — terminal heading dedup, PushPilot confidence hidden, skeleton cleanup; 640 tests).*
 *P3 build sequence + demo complete.*

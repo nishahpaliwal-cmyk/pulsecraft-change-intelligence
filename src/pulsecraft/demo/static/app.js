@@ -67,6 +67,7 @@ let hasRunBefore = false;
 let buCardsMap = {};
 let railDots = {};
 let changeId = null;
+let lastHitlTriggerType = null;
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
@@ -222,6 +223,7 @@ async function runScenario(scenarioId) {
   changeId = null;
   buCardsMap = {};
   totalCostUsd = 0;
+  lastHitlTriggerType = null;
 
   updateSidebarActive(scenarioId);
   clearRunContent();     // clear previous run, don't re-show welcome
@@ -375,7 +377,8 @@ function renderAgentStarted(p) {
   if (!document.getElementById(sectionId)) {
     const section = createSection(sectionId, agent, AGENT_LABEL[agent] || agent, agentSubtitle(agent, p));
     const body = section.querySelector('.section-body');
-    const count = agent === 'signalscribe' ? 3 : agent === 'pushpilot' ? 1 : 2;
+    // PushPilot gets 0 shimmers — per-BU decisions arrive individually with no aggregate loading phase
+    const count = agent === 'signalscribe' ? 3 : agent === 'pushpilot' ? 0 : 2;
     for (let i = 0; i < count; i++) {
       const ph = el('div', 'shimmer-placeholder md');
       ph.setAttribute('aria-hidden', 'true');
@@ -542,15 +545,21 @@ function renderBUAtlasCompleted(p) {
 function renderPushpilotDecision(p) {
   const bu_id = p.bu_id;
   const diverged = p.diverged;
-  const sectionId = `section-pushpilot-${bu_id}`;
+  const sectionId = 'section-pushpilot';
 
   let section = document.getElementById(sectionId);
   if (!section) {
-    section = createSection(sectionId, 'pushpilot', `PushPilot · ${escHtml(bu_id)}`, 'Gate 6 · delivery timing');
+    // agent_started should have created this; create defensively if missing
+    section = createSection(sectionId, 'pushpilot', 'PushPilot', 'Gate 6 · delivery timing');
     getRunContent().appendChild(section);
   }
 
   const body = section.querySelector('.section-body');
+
+  // BU label — helps distinguish when multiple BUs each get a PushPilot decision
+  const buLabel = el('div', 'pp-bu-label');
+  buLabel.textContent = bu_id;
+  body.appendChild(buLabel);
 
   if (diverged && p.preference && p.enforced) {
     // The architectural moment — animated two-card layout
@@ -604,47 +613,33 @@ function renderPushpilotDecision(p) {
 
     body.appendChild(wrap);
 
-    // Animate confidence bar and arrow after paint
+    // Trigger arrow draw after top card has had time to enter
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      topCard.querySelectorAll('.confidence-bar-fill[data-pct]').forEach(fill => {
-        fill.style.width = fill.dataset.pct + '%';
-      });
-      // Trigger arrow draw after top card has had time to enter
       setTimeout(() => {
         const line = connectorWrap.querySelector('.pp-connector-line');
         if (line) line.classList.add('drawn');
       }, 620);
     }));
   } else {
-    // Non-diverged: standard card
+    // Non-diverged: standard card (no confidence bar — PushPilot's timing decision has no confidence score)
     const pref = p.preference || p;
     const card = el('div', 'pp-decision');
     const verbClass = VERB_CLASS[pref.verb] || 'info';
-    const confPct = Math.round((pref.confidence || 0) * 100);
     card.innerHTML = `
       <div class="decision-card__top">
         <span class="verb-badge ${verbClass}">${escHtml(pref.verb)}</span>
         <span class="gate-label">Gate 6 · delivery timing</span>
-        <div class="confidence-wrap">
-          <div class="confidence-bar-bg">
-            <div class="confidence-bar-fill" style="background:var(--color-pp)" data-pct="${confPct}"></div>
-          </div>
-          <span class="confidence-val">${(pref.confidence || 0).toFixed(2)}</span>
-        </div>
       </div>
       <div class="decision-card__reason">${escHtml((pref.reason || '').slice(0, 400))}</div>
     `;
     body.appendChild(card);
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const fill = card.querySelector('.confidence-bar-fill');
-      if (fill) fill.style.width = fill.dataset.pct + '%';
-    }));
   }
 
   setRailDone('pushpilot');
 }
 
 function renderHITLTriggered(p) {
+  lastHitlTriggerType = p.trigger_type || null;
   const doc = getRunContent();
   const card = el('div', 'hitl-trigger-card');
   card.innerHTML = `
@@ -669,6 +664,9 @@ function renderTerminalState(p) {
   if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
   if (currentEventSource) { currentEventSource.close(); currentEventSource = null; }
 
+  // Issue 1: clean up any unfilled shimmer placeholders (gates that never fired)
+  document.querySelectorAll('#run-content .shimmer-placeholder').forEach(s => s.remove());
+
   const elapsed = p.elapsed_s || ((Date.now() - (runStartMs || Date.now())) / 1000).toFixed(1);
   updateCostCounter(p.total_cost_usd || 0, elapsed);
 
@@ -676,16 +674,24 @@ function renderTerminalState(p) {
   const state = p.state || 'UNKNOWN';
   const meta = STATE_META[state] || { css: 'terminal-archived', accent: 'neutral', title: state };
 
-  const section = createSection('section-terminal', meta.accent, meta.title, '');
+  // Issue 2: section divider shows trigger type for HITL; no title for other terminal states
+  // (the body heading — terminal-summary__title or hitl-panel — carries the visual weight)
+  const sectionTitle = state === 'AWAITING_HITL'
+    ? (lastHitlTriggerType || 'awaiting_hitl')
+    : '';
+
+  const section = createSection('section-terminal', meta.accent, sectionTitle, '');
   section.classList.add(meta.css);
   const body = section.querySelector('.section-body');
 
-  // Summary row
-  const summary = el('div', 'terminal-summary');
-  summary.innerHTML = `
-    <div class="terminal-summary__title">${escHtml(meta.title)}</div>
-  `;
-  body.appendChild(summary);
+  // Summary heading — only for non-HITL states (HITL panel has its own "Operator review panel" heading)
+  if (state !== 'AWAITING_HITL') {
+    const summary = el('div', 'terminal-summary');
+    summary.innerHTML = `
+      <div class="terminal-summary__title">${escHtml(meta.title)}</div>
+    `;
+    body.appendChild(summary);
+  }
 
   // State-specific body
   if (state === 'DELIVERED') {
@@ -941,7 +947,7 @@ function createSection(id, agentOrAccent, title, subtitle) {
     <div class="section-header">
       <div class="section-accent ${agentOrAccent}"></div>
       <div>
-        <div class="section-title">${escHtml(title)}</div>
+        ${title ? `<div class="section-title">${escHtml(title)}</div>` : ''}
         ${subtitle ? `<div class="section-sub">${escHtml(subtitle)}</div>` : ''}
       </div>
     </div>

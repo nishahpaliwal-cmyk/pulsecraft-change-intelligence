@@ -284,6 +284,9 @@ All three must respect the field length limits. Exceeding them causes validation
 
 Use your judgment on P0 vs P1. P0 means "this BU head must see this today." Reserve P0 for changes where delay causes a material problem. When in doubt → P1.
 
+**P0 examples:** system outage affecting ordering workflows, patient safety data correction, compliance deadline within 24 hours, regulatory submission impacted.
+**P1 examples:** HCP portal feature enhancements, educational content updates, scientific communications, clinical evidence library changes, formulary lookup improvements. Scientific or educational content → P1 unless a regulatory deadline or patient safety alert is involved.
+
 ---
 
 ## How to reason (step by step)

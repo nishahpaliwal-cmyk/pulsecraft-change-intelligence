@@ -873,6 +873,17 @@ h1, h2, h3 { font-family: 'Fraunces', Georgia, serif; font-weight: 500; line-hei
   animation: fadeIn 350ms var(--ease-enter) forwards;
 }
 
+/* BU label within PushPilot section for multi-BU decisions */
+.pp-bu-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  margin-top: 8px;
+}
+.pp-bu-label:first-child { margin-top: 0; }
+
 /* Entrance delays for PushPilot diverged choreography */
 .pp-card.top-card   { animation: card-enter var(--dur-enter) 0ms var(--ease-enter) both; }
 .pp-card.bot-card   { animation: card-enter var(--dur-enter) 720ms var(--ease-enter) both; }
