@@ -9,17 +9,17 @@ function _buildDOM() {
   return `
 <div class="how-wrap">
 
-  <!-- Chapter 1: The problem -->
+  <!-- Chapter 1: The system -->
   <section class="how-chapter how-ch1" id="how-ch1">
-    <div class="how-eyebrow">The problem</div>
+    <div class="how-eyebrow">The system</div>
     <h2 class="how-ch1__headline">
-      <span class="how-word w1">Your</span>
-      <span class="how-word w2">BU lead</span>
-      <span class="how-word w3">missed</span>
-      <span class="how-word w4">the change.</span><br>
-      <span class="how-word w5 how-word--em">Again.</span>
+      <span class="how-word w1">Three</span> <span class="how-word w2">specialists.</span><br>
+      <span class="how-word w3">Four</span> <span class="how-word w4">guardrails.</span><br>
+      <span class="how-word w5">One</span> <span class="how-word w6">deterministic</span> <span class="how-word w7">core.</span>
     </h2>
-    <p class="how-body">A competitor shifted pricing tiers. Three upstream systems carried the signal. Your analytics BU was directly affected. No one connected the dots — and the BU lead found out in a customer meeting.</p>
+    <p class="how-ch1__bridge">Every change — routed, reasoned, and recorded.</p>
+    <p class="how-body">Product ships changes constantly. Some matter to your BU. Some don't. PulseCraft sorts signal from noise with three LLM specialists working in sequence, four deterministic hooks enforcing policy, and an append-only audit trail capturing every decision.</p>
+    <p class="how-body">Nothing silent. Nothing unaudited. Every routing call defensible.</p>
 
     <div class="how-ch1__signals" aria-label="Unfiltered change signals — the signal is buried in the noise">
       <span class="how-signal how-signal--dim">release note · platform</span>
@@ -32,8 +32,6 @@ function _buildDOM() {
       <span class="how-signal how-signal--dim">flag · experiment A/B</span>
       <span class="how-signal how-signal--dim">work item · data pipeline</span>
     </div>
-
-    <p class="how-ch1__question">Which signals matter? To whom? Right now?</p>
 
     <p class="how-ch1__thesis">
       Change communication is a routing problem.<br>

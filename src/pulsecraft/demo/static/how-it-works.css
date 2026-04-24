@@ -70,19 +70,37 @@
   transition: opacity 0.38s var(--ease-enter), transform 0.38s var(--ease-enter);
 }
 
-.how-word--em {
-  color: var(--color-pp);
-}
+
 
 .is-visible .how-word       { opacity: 1; transform: none; }
 .is-visible .w1             { transition-delay: 0.04s; }
 .is-visible .w2             { transition-delay: 0.11s; }
-.is-visible .w3             { transition-delay: 0.18s; }
-.is-visible .w4             { transition-delay: 0.25s; }
-.is-visible .w5             { transition-delay: 0.35s; }
+.is-visible .w3             { transition-delay: 0.22s; }
+.is-visible .w4             { transition-delay: 0.30s; }
+.is-visible .w5             { transition-delay: 0.42s; }
+.is-visible .w6             { transition-delay: 0.50s; }
+.is-visible .w7             { transition-delay: 0.58s; }
 
 @media (prefers-reduced-motion: reduce) {
   .how-word { opacity: 1; transform: none; transition: none; }
+}
+
+/* Bridge line — italic subtitle beneath the headline */
+.how-ch1__bridge {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: clamp(22px, 3vw, 30px);
+  font-style: italic;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin: 0 0 36px;
+  opacity: 0;
+  transition: opacity 0.5s var(--ease-enter) 0.70s;
+}
+
+.is-visible .how-ch1__bridge { opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .how-ch1__bridge { opacity: 1; transition: none; }
 }
 
 /* Signal noise grid */
@@ -133,23 +151,6 @@
 @media (prefers-reduced-motion: reduce) {
   .how-signal { opacity: 1; transform: none; transition: none; }
   .how-signal.how-signal--dim { opacity: 0.42; }
-}
-
-.how-ch1__question {
-  font-family: 'Fraunces', Georgia, serif;
-  font-size: 22px;
-  font-style: italic;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  margin: 0 0 40px;
-  opacity: 0;
-  transition: opacity 0.5s var(--ease-enter) 0.95s;
-}
-
-.is-visible .how-ch1__question { opacity: 1; }
-
-@media (prefers-reduced-motion: reduce) {
-  .how-ch1__question { opacity: 1; transition: none; }
 }
 
 .how-ch1__thesis {
