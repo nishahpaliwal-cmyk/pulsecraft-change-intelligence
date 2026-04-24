@@ -3,6 +3,8 @@
  * Handles scenario rendering, SSE streaming, and all UI state.
  */
 
+import { initArchitecture, teardownArchitecture } from './architecture.js';
+
 // ── Constants ──────────────────────────────────────────────────────────────
 
 const VERB_CLASS = {
@@ -86,10 +88,44 @@ async function init() {
   document.getElementById('drawer-close').addEventListener('click', closeDrawer);
   document.getElementById('drawer-overlay').addEventListener('click', closeDrawer);
 
+  // Tab switching
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
   // Scroll-aware top bar shadow
   window.addEventListener('scroll', () => {
     document.getElementById('top-bar').classList.toggle('scrolled', window.scrollY > 4);
   }, { passive: true });
+}
+
+// ── Tab switching ──────────────────────────────────────────────────────────
+
+let _activeTab = 'demo';
+
+function switchTab(tab) {
+  if (tab === _activeTab) return;
+  _activeTab = tab;
+
+  // Update tab button states
+  document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
+    const isActive = btn.dataset.tab === tab;
+    btn.classList.toggle('tab-btn--active', isActive);
+    btn.setAttribute('aria-selected', String(isActive));
+  });
+
+  const demoLayout  = document.querySelector('.layout');
+  const archTab     = document.getElementById('arch-tab');
+
+  if (tab === 'demo') {
+    teardownArchitecture();
+    demoLayout.removeAttribute('hidden');
+    archTab.setAttribute('hidden', '');
+  } else if (tab === 'architecture') {
+    demoLayout.setAttribute('hidden', '');
+    archTab.removeAttribute('hidden');
+    initArchitecture();
+  }
 }
 
 // ── Sidebar ────────────────────────────────────────────────────────────────

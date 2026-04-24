@@ -125,3 +125,40 @@ class TestSSERoute:
         assert first["type"] == "run_started"
         last = json.loads(data_lines[-1][len("data: "):])
         assert last["type"] == "terminal_state"
+
+
+class TestArchitectureTab:
+    def test_architecture_js_served(self) -> None:
+        """architecture.js must be reachable and export initArchitecture."""
+        resp = client.get("/static/architecture.js")
+        assert resp.status_code == 200
+        assert "initArchitecture" in resp.text
+        assert "ARCH" in resp.text
+
+    def test_architecture_css_served(self) -> None:
+        """architecture.css must be reachable and contain key selectors."""
+        resp = client.get("/static/architecture.css")
+        assert resp.status_code == 200
+        assert ".arch-root" in resp.text
+        assert ".arch-canvas" in resp.text
+
+    def test_index_html_has_architecture_tab_button(self) -> None:
+        """Architecture tab button must be present and enabled (not disabled)."""
+        resp = client.get("/")
+        assert resp.status_code == 200
+        assert 'data-tab="architecture"' in resp.text
+        # Must NOT carry the old disabled / coming-soon state
+        assert 'Architecture — coming soon' not in resp.text
+
+    def test_index_html_has_arch_tab_container(self) -> None:
+        """Architecture tab wrapper div must exist in the page markup."""
+        resp = client.get("/")
+        assert 'id="arch-tab"' in resp.text
+        assert 'id="arch-root"' in resp.text
+
+    def test_app_js_imports_architecture_module(self) -> None:
+        """app.js must import initArchitecture from architecture.js."""
+        resp = client.get("/static/app.js")
+        assert resp.status_code == 200
+        assert "initArchitecture" in resp.text
+        assert "architecture.js" in resp.text

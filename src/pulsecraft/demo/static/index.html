@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/architecture.css">
 </head>
 <body>
   <div id="app">
@@ -19,8 +20,8 @@
         <span class="brand-sub">· Change Intelligence</span>
       </div>
       <nav class="top-bar__tabs" role="tablist" aria-label="App sections">
-        <button class="tab-btn tab-btn--active" role="tab" aria-selected="true" aria-label="Demo">Demo</button>
-        <button class="tab-btn tab-btn--soon" role="tab" aria-selected="false" aria-label="Architecture — coming soon" disabled>Architecture</button>
+        <button class="tab-btn tab-btn--active" role="tab" aria-selected="true" data-tab="demo" aria-label="Demo">Demo</button>
+        <button class="tab-btn" role="tab" aria-selected="false" data-tab="architecture" aria-label="Architecture">Architecture</button>
         <button class="tab-btn tab-btn--soon" role="tab" aria-selected="false" aria-label="How it works — coming soon" disabled>How it works</button>
       </nav>
       <div class="top-bar__right">
@@ -74,6 +75,11 @@
       </aside>
 
     </div><!-- .layout -->
+
+    <!-- Architecture tab -->
+    <div id="arch-tab" class="arch-tab-wrap" hidden>
+      <div id="arch-root"></div>
+    </div>
 
     <!-- Audit trail drawer -->
     <div class="drawer" id="audit-drawer" hidden aria-modal="true" role="dialog" aria-label="Audit trail">
